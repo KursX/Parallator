@@ -4,13 +4,14 @@ import javafx.scene.control.*;
 import javafx.scene.input.MouseButton;
 import javafx.scene.text.Text;
 import javafx.util.Callback;
+import parallator.controller.RootController;
 
 public class CellFactory implements Callback<TableColumn<Paragraph, String>, TableCell<Paragraph, String>> {
 
-    private Controller controller;
+    private RootController controller;
     private boolean en;
 
-    public CellFactory(Controller controller, boolean left) {
+    public CellFactory(RootController controller, boolean left) {
         this.controller = controller;
         this.en = left;
     }

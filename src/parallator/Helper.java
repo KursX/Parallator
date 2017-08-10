@@ -4,12 +4,28 @@ package parallator;
 import javafx.scene.Scene;
 import javafx.stage.DirectoryChooser;
 
-import java.io.BufferedReader;
-import java.io.File;
-import java.io.FileReader;
-import java.io.IOException;
+import java.io.*;
+import java.net.URL;
+import java.nio.channels.Channels;
+import java.nio.channels.ReadableByteChannel;
 
 public class Helper {
+
+    public static void update() {
+        new Thread(() -> {
+            try {
+                File file1 = new File("Parallator.jar");
+                file1.delete();
+                URL website = new URL("https://github.com/KursX/Parallator/raw/master/release/Parallator.jar");
+                ReadableByteChannel rbc = Channels.newChannel(website.openStream());
+                FileOutputStream fos = new FileOutputStream("Parallator.jar");
+                fos.getChannel().transferFrom(rbc, 0, Long.MAX_VALUE);
+                System.exit(0);
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }).start();
+    }
 
     public static String getTextFromFile(String file) {
         String line;

@@ -1,11 +1,9 @@
-package parallator;
+package parallator.controller;
 
-import com.google.gson.Gson;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
-import javafx.scene.Scene;
 import javafx.scene.control.Control;
 import javafx.scene.control.TableCell;
 import javafx.scene.control.TableColumn;
@@ -13,6 +11,11 @@ import javafx.scene.control.TableView;
 import javafx.scene.control.cell.PropertyValueFactory;
 import javafx.scene.input.MouseButton;
 import javafx.scene.text.Text;
+import javafx.stage.Stage;
+import parallator.CellFactory;
+import parallator.Chapter;
+import parallator.Helper;
+import parallator.Paragraph;
 
 import java.io.File;
 import java.io.FileWriter;
@@ -20,38 +23,32 @@ import java.io.IOException;
 import java.net.URL;
 import java.util.*;
 
-public class Controller implements Initializable {
+public class RootController implements Initializable {
 
     private List<String> ens, rus;
     private File file, chasedFile;
-    private Scene scene;
+    private Stage stage;
     private List<File> list;
 
-    public class Chapter {
-        public String chapter;
-
-        public Chapter(String chapter) {
-            this.chapter = chapter;
-        }
-
-        public String getChapter() {
-            return chapter;
-        }
-    }
-
-    public void setScene(Scene scene) {
-        this.scene = scene;
-
-
-        file = Helper.showDirectoryChooser(scene);
+    public void open() {
+        file = Helper.showDirectoryChooser(stage.getScene());
         if (file != null) {
             ObservableList<Chapter> lines = FXCollections.observableArrayList();
-            list = Arrays.asList(file.listFiles());
-            Collections.sort(list, (o1, o2) -> o1.getName().compareTo(o2.getName()));
+            list = new ArrayList<>();
+            for (File file1 : file.listFiles()) {
+                if (file1.isDirectory()) {
+                    try {
+                        Integer.parseInt(file1.getName());
+                        list.add(file1);
+                    } catch (Exception ignored) {
+                    }
+                }
+            }
+            Collections.sort(list, (o1, o2) -> Integer.parseInt(o1.getName()) - Integer.parseInt(o2.getName()));
             for (File s : list) {
                 lines.add(new Chapter(s.getName()));
             }
-            chapter.setCellValueFactory(new PropertyValueFactory<>("chapter"));
+            chapter.setCellValueFactory(new PropertyValueFactory<>("chapterName"));
             chapters.setItems(lines);
             chapter.setCellFactory(param -> {
                 TableCell<Chapter, String> cell = new TableCell<>();
@@ -63,7 +60,7 @@ public class Controller implements Initializable {
                 text.setOnMouseClicked(t -> {
                     if (t.getButton() == MouseButton.PRIMARY) {
                         change(list.get(cell.getIndex()));
-                    } else if (t.getButton() == MouseButton.SECONDARY){
+                    } else if (t.getButton() == MouseButton.SECONDARY) {
                         change(list.get(cell.getIndex()));
 
                     }
@@ -73,11 +70,15 @@ public class Controller implements Initializable {
         }
     }
 
-    @FXML
-    TableView<Paragraph> table;
+    public void setStage(Stage stage) {
+        this.stage = stage;
+    }
 
     @FXML
-    TableView<Chapter> chapters;
+    private TableView<Paragraph> table;
+
+    @FXML
+    private TableView<Chapter> chapters;
 
     @FXML
     private TableColumn<Chapter, String> chapter;
@@ -85,25 +86,33 @@ public class Controller implements Initializable {
     @FXML
     private TableColumn<Paragraph, String> input, output;
 
+//    @FXML
+//    private HBox saving;
+
     @Override
     public void initialize(URL location, ResourceBundle resources) {
         input.setCellValueFactory(new PropertyValueFactory<>("en"));
         output.setCellValueFactory(new PropertyValueFactory<>("ru"));
+
         input.setCellFactory(new CellFactory(this, true));
         output.setCellFactory(new CellFactory(this, false));
 
         input.prefWidthProperty().bind(table.widthProperty().multiply(0.5));
         output.prefWidthProperty().bind(table.widthProperty().multiply(0.5));
+        chapter.prefWidthProperty().bind(chapters.widthProperty().multiply(1));
     }
 
     public void change(File file) {
         save();
         chasedFile = file;
-        String en = Helper.getTextFromFile(new File(file, "en.txt").getAbsolutePath());
-        String ru = Helper.getTextFromFile(new File(file, "ru.txt").getAbsolutePath());
+        String en = Helper.getTextFromFile(new File(file, "1.txt").getAbsolutePath());
+        String ru = Helper.getTextFromFile(new File(file, "2.txt").getAbsolutePath());
 
-        ens = new LinkedList<>(Arrays.asList(en.split("\\n\\n")));
+        ens = new LinkedList<>(Arrays.asList(en.split("(\\n\\n|\\n *\\n)")));
         rus = new LinkedList<>(Arrays.asList(ru.split("\\n\\n")));
+
+        input.setText("Исходник (" + ens.size() + ")");
+        output.setText("Перевод (" + rus.size() + ")");
 
         show();
     }
@@ -150,17 +159,17 @@ public class Controller implements Initializable {
             for (int i = 0; i < (ens.size() > rus.size() ? ens.size() : rus.size()); i++) {
                 lines.add(new Paragraph(i < ens.size() ? ens.get(i) : "", i < rus.size() ? rus.get(i) : ""));
             }
-            FileWriter wrt = new FileWriter(new File(chasedFile, "en.txt"));
+            FileWriter wrt = new FileWriter(new File(chasedFile, "1.txt"));
             wrt.append(enBuilder);
             wrt.flush();
 
-            wrt = new FileWriter(new File(chasedFile, "rus.txt"));
+            wrt = new FileWriter(new File(chasedFile, "2.txt"));
             wrt.append(ruBuilder);
             wrt.flush();
 
-            wrt = new FileWriter(new File(chasedFile, file.getName()));
-            wrt.append(new Gson().toJson(lines));
-            wrt.flush();
+//            wrt = new FileWriter(new File(chasedFile, chasedFile.getName() + ".json"));
+//            wrt.append(new Gson().toJson(lines));
+//            wrt.flush();
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -172,5 +181,20 @@ public class Controller implements Initializable {
             lines.add(new Paragraph(i < ens.size() ? ens.get(i) : "", i < rus.size() ? rus.get(i) : ""));
         }
         table.setItems(lines);
+    }
+
+    public File getFile() {
+        return file;
+    }
+
+    public boolean validate() {
+        for (File file1 : list) {
+            String en = Helper.getTextFromFile(new File(file1, "1.txt").getAbsolutePath());
+            String ru = Helper.getTextFromFile(new File(file1, "2.txt").getAbsolutePath());
+            if (en.split("\\n\\n").length != ru.split("\\n\\n").length) {
+                return false;
+            }
+        }
+        return true;
     }
 }
