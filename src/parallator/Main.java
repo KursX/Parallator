@@ -47,11 +47,34 @@ public class Main extends Application {
         MenuBar menuBar = new MenuBar();
         Menu file = new Menu("Файл");
         Menu help = new Menu("Помощь");
+        Menu enc1 = new Menu("Кодировка исходника");
+        Menu enc2 = new Menu("Кодировка перевода");
 
         MenuItem open = new MenuItem("Открыть");
+        MenuItem save = new MenuItem("Сохранить");
         MenuItem about = new MenuItem("О Программе");
-        MenuItem update = new MenuItem("Обновить");
+        MenuItem update = new MenuItem("Обновить программу");
         MenuItem send = new MenuItem("Отправить KursX");
+        MenuItem refresh = new MenuItem("Обновить текст");
+
+        for (String charset : Helper.charsets) {
+            MenuItem e1 = new MenuItem(charset);
+            MenuItem e2 = new MenuItem(charset);
+            enc1.getItems().add(e1);
+            enc2.getItems().add(e2);
+            e1.setOnAction(event -> {
+                Config config = Helper.getConfig(rootController.getFile());
+                config.enc1 = e1.getText();
+                Helper.saveConfig(config, rootController.getFile());
+                rootController.change();
+            });
+            e2.setOnAction(event -> {
+                Config config = Helper.getConfig(rootController.getFile());
+                config.enc2 = e2.getText();
+                Helper.saveConfig(config, rootController.getFile());
+                rootController.change();
+            });
+        }
 
         send.setOnAction(event -> {
             if (rootController.getFile() != null) {
@@ -59,11 +82,13 @@ public class Main extends Application {
                 Platform.runLater(() -> dialogStage.getScene().getRoot().requestFocus());
             }
         });
-        about.setOnAction(event -> Toast.makeText(rootStage, "Parallator v0.2 by KursX \n kursxinc@gmail.com", 5000));
+        about.setOnAction(event -> Toast.makeText(rootStage, "Parallator v0.3 by KursX \n kursxinc@gmail.com", 5000));
         update.setOnAction(event -> Helper.update());
         open.setOnAction(event -> rootController.open());
+        save.setOnAction(event -> rootController.save());
+        refresh.setOnAction(event -> rootController.change());
 
-        file.getItems().addAll(open, send);
+        file.getItems().addAll(open, save, send, enc1, enc2, refresh);
         help.getItems().addAll(update, about);
 
         menuBar.getMenus().addAll(file, help);
