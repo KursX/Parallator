@@ -4,18 +4,12 @@ import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
-import javafx.scene.control.Control;
-import javafx.scene.control.TableCell;
-import javafx.scene.control.TableColumn;
-import javafx.scene.control.TableView;
+import javafx.scene.control.*;
 import javafx.scene.control.cell.PropertyValueFactory;
 import javafx.scene.input.MouseButton;
 import javafx.scene.text.Text;
 import javafx.stage.Stage;
-import parallator.CellFactory;
-import parallator.Chapter;
-import parallator.Helper;
-import parallator.Paragraph;
+import parallator.*;
 
 import java.io.File;
 import java.io.FileWriter;
@@ -62,7 +56,6 @@ public class RootController implements Initializable {
                         change(list.get(cell.getIndex()));
                     } else if (t.getButton() == MouseButton.SECONDARY) {
                         change(list.get(cell.getIndex()));
-
                     }
                 });
                 return cell;
@@ -86,9 +79,6 @@ public class RootController implements Initializable {
     @FXML
     private TableColumn<Paragraph, String> input, output;
 
-//    @FXML
-//    private HBox saving;
-
     @Override
     public void initialize(URL location, ResourceBundle resources) {
         input.setCellValueFactory(new PropertyValueFactory<>("en"));
@@ -103,10 +93,10 @@ public class RootController implements Initializable {
     }
 
     public void change(File file) {
-        save();
         chasedFile = file;
-        String en = Helper.getTextFromFile(new File(file, "1.txt").getAbsolutePath());
-        String ru = Helper.getTextFromFile(new File(file, "2.txt").getAbsolutePath());
+        Config config = Helper.getConfig(file.getParentFile());
+        String en = Helper.getTextFromFile(new File(file, "1.txt"), config.enc1).trim();
+        String ru = Helper.getTextFromFile(new File(file, "2.txt"), config.enc2).trim();
 
         ens = new LinkedList<>(Arrays.asList(en.split("(\\n\\n|\\n *\\n)")));
         rus = new LinkedList<>(Arrays.asList(ru.split("\\n\\n")));
@@ -115,6 +105,10 @@ public class RootController implements Initializable {
         output.setText("Перевод (" + rus.size() + ")");
 
         show();
+    }
+
+    public void change() {
+        change(chasedFile);
     }
 
     public void remove(int position, boolean left) {
@@ -189,8 +183,8 @@ public class RootController implements Initializable {
 
     public boolean validate() {
         for (File file1 : list) {
-            String en = Helper.getTextFromFile(new File(file1, "1.txt").getAbsolutePath());
-            String ru = Helper.getTextFromFile(new File(file1, "2.txt").getAbsolutePath());
+            String en = Helper.getTextFromFile(new File(file1, "1.txt"), Helper.getConfig(file1.getParentFile()).enc1).trim();
+            String ru = Helper.getTextFromFile(new File(file1, "2.txt"), Helper.getConfig(file1.getParentFile()).enc2).trim();
             if (en.split("\\n\\n").length != ru.split("\\n\\n").length) {
                 return false;
             }

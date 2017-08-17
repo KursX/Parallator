@@ -6,6 +6,8 @@ import javafx.scene.text.Text;
 import javafx.util.Callback;
 import parallator.controller.RootController;
 
+import java.util.Optional;
+
 public class CellFactory implements Callback<TableColumn<Paragraph, String>, TableCell<Paragraph, String>> {
 
     private RootController controller;
@@ -24,6 +26,8 @@ public class CellFactory implements Callback<TableColumn<Paragraph, String>, Tab
         cell.setPrefHeight(Control.USE_COMPUTED_SIZE);
         text.wrappingWidthProperty().bind(cell.widthProperty());
         text.textProperty().bind(cell.itemProperty());
+        text.wrappingWidthProperty().bind(cell.widthProperty());
+        cell.setMinHeight(cell.itemProperty().toString().length() * 50 / 100);
         text.setOnMouseClicked(t -> {
             if (t.getButton() == MouseButton.PRIMARY) {
                 String data = param.getCellObservableValue(cell.getIndex()).getValue();
@@ -42,7 +46,13 @@ public class CellFactory implements Callback<TableColumn<Paragraph, String>, Tab
                     cm.show(cell, t.getScreenX(), t.getScreenY());
                 }
             } else if (t.getButton() == MouseButton.SECONDARY) {
-                controller.remove(cell.getIndex(), en);
+                Alert alert = new Alert(Alert.AlertType.WARNING);
+                alert.setHeaderText("Удалить абзац?");
+                alert.getButtonTypes().setAll(ButtonType.OK, ButtonType.CANCEL);
+                Optional<ButtonType> result = alert.showAndWait();
+                if (result.isPresent() && result.get() == ButtonType.OK) {
+                    controller.remove(cell.getIndex(), en);
+                }
             }
         });
         return cell;
