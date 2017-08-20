@@ -15,8 +15,19 @@ public class Helper {
 
     public static final String CP_1251 = "cp1251", UTF_8 = "utf8";
 
+    public static final String DIV1 = "Перенос строки", DIV2 = "Пустая строка";
+    public static final String DIV1REG = "\\n", DIV2REG = "\\n *\\n";
+
     public static final String[] charsets = {
             CP_1251, UTF_8,
+    };
+
+    public static final String[] dividersRegs = {
+            DIV1REG, DIV2REG,
+    };
+
+    public static final String[] dividers = {
+            DIV1, DIV2,
     };
 
     public static void update() {
@@ -77,23 +88,24 @@ public class Helper {
     public static Config getConfig(File file) {
         String text = getTextFromFile(new File(file, "config"), UTF_8);
         if (text == null) {
-            Config config = new Config();
-            saveConfig(config, file);
-            config = getConfig(file);
+            Config config = new Config(file);
+            config.save();
             return config;
         }
-        return new Gson().fromJson(Security.decrypt(text), Config.class);
+        Config config = new Gson().fromJson(Security.decrypt(text), Config.class);
+        if (config.file() == null) config.setFile(new File(file, "config").getAbsolutePath());
+        return config;
     }
 
-    public static void saveConfig(Config config, File file) {
-        String text = Security.encrypt(new Gson().toJson(config));
-        try {
-            FileWriter wrt = new FileWriter(new File(file, "config"));
-            wrt.append(text);
-            wrt.flush();
-            wrt.close();
-        } catch (IOException e) {
-            e.printStackTrace();
+    public static MainConfig getMainConfig() {
+        File workingDirectory = new File(System.getProperty("user.dir"));
+        File file = new File(workingDirectory, "config");
+        String text = getTextFromFile(file, UTF_8);
+        if (text == null) {
+            MainConfig config = new MainConfig(file);
+            config.save();
+            return config;
         }
+        return new Gson().fromJson(text, MainConfig.class);
     }
 }

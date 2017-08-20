@@ -4,11 +4,13 @@ import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
-import javafx.scene.control.*;
+import javafx.scene.control.Control;
+import javafx.scene.control.TableCell;
+import javafx.scene.control.TableColumn;
+import javafx.scene.control.TableView;
 import javafx.scene.control.cell.PropertyValueFactory;
 import javafx.scene.input.MouseButton;
 import javafx.scene.text.Text;
-import javafx.stage.Stage;
 import parallator.*;
 
 import java.io.File;
@@ -21,50 +23,45 @@ public class RootController implements Initializable {
 
     private List<String> ens, rus;
     private File file, chasedFile;
-    private Stage stage;
     private List<File> list;
+    private boolean edited = false;
 
-    public void open() {
-        file = Helper.showDirectoryChooser(stage.getScene());
-        if (file != null) {
-            ObservableList<Chapter> lines = FXCollections.observableArrayList();
-            list = new ArrayList<>();
-            for (File file1 : file.listFiles()) {
-                if (file1.isDirectory()) {
-                    try {
-                        Integer.parseInt(file1.getName());
-                        list.add(file1);
-                    } catch (Exception ignored) {
-                    }
+    public void open(File file) {
+        this.file = file;
+        ObservableList<Chapter> lines = FXCollections.observableArrayList();
+        list = new ArrayList<>();
+        for (File file1 : file.listFiles()) {
+            if (file1.isDirectory()) {
+                try {
+                    Integer.parseInt(file1.getName());
+                    list.add(file1);
+                } catch (Exception ignored) {
                 }
             }
-            Collections.sort(list, (o1, o2) -> Integer.parseInt(o1.getName()) - Integer.parseInt(o2.getName()));
-            for (File s : list) {
-                lines.add(new Chapter(s.getName()));
-            }
-            chapter.setCellValueFactory(new PropertyValueFactory<>("chapterName"));
-            chapters.setItems(lines);
-            chapter.setCellFactory(param -> {
-                TableCell<Chapter, String> cell = new TableCell<>();
-                Text text = new Text();
-                cell.setGraphic(text);
-                cell.setPrefHeight(Control.USE_COMPUTED_SIZE);
-                text.wrappingWidthProperty().bind(cell.widthProperty());
-                text.textProperty().bind(cell.itemProperty());
-                text.setOnMouseClicked(t -> {
-                    if (t.getButton() == MouseButton.PRIMARY) {
-                        change(list.get(cell.getIndex()));
-                    } else if (t.getButton() == MouseButton.SECONDARY) {
-                        change(list.get(cell.getIndex()));
-                    }
-                });
-                return cell;
-            });
         }
-    }
-
-    public void setStage(Stage stage) {
-        this.stage = stage;
+        Collections.sort(list, (o1, o2) -> Integer.parseInt(o1.getName()) - Integer.parseInt(o2.getName()));
+        for (File s : list) {
+            lines.add(new Chapter(s.getName()));
+        }
+        chapter.setCellValueFactory(new PropertyValueFactory<>("chapterName"));
+        chapters.setItems(lines);
+        chapter.setCellFactory(param -> {
+            TableCell<Chapter, String> cell = new TableCell<>();
+            Text text = new Text();
+            cell.setGraphic(text);
+            cell.setPrefHeight(Control.USE_COMPUTED_SIZE);
+            text.wrappingWidthProperty().bind(cell.widthProperty());
+            text.textProperty().bind(cell.itemProperty());
+            text.setOnMouseClicked(t -> {
+                if (t.getButton() == MouseButton.PRIMARY) {
+                    change(list.get(cell.getIndex()));
+                    getConfig().setLastChapter(cell.getIndex());
+                }
+            });
+            return cell;
+        });
+        change(list.get(getConfig().getLastChapter()));
+        chapters.getSelectionModel().select(getConfig().getLastChapter());
     }
 
     @FXML
@@ -92,14 +89,15 @@ public class RootController implements Initializable {
         chapter.prefWidthProperty().bind(chapters.widthProperty().multiply(1));
     }
 
-    public void change(File file) {
-        chasedFile = file;
-        Config config = Helper.getConfig(file.getParentFile());
-        String en = Helper.getTextFromFile(new File(file, "1.txt"), config.enc1).trim();
-        String ru = Helper.getTextFromFile(new File(file, "2.txt"), config.enc2).trim();
+    public void change(File chapterFile) {
+        chasedFile = chapterFile;
+        Config config = getConfig();
 
-        ens = new LinkedList<>(Arrays.asList(en.split("(\\n\\n|\\n *\\n)")));
-        rus = new LinkedList<>(Arrays.asList(ru.split("\\n\\n")));
+        String en = Helper.getTextFromFile(new File(chapterFile, "1.txt"), config.enc1()).trim();
+        String ru = Helper.getTextFromFile(new File(chapterFile, "2.txt"), config.enc2()).trim();
+
+        ens = new LinkedList<>(Arrays.asList(en.split(config.divider())));
+        rus = new LinkedList<>(Arrays.asList(ru.split(config.divider())));
 
         input.setText("Исходник (" + ens.size() + ")");
         output.setText("Перевод (" + rus.size() + ")");
@@ -182,13 +180,26 @@ public class RootController implements Initializable {
     }
 
     public boolean validate() {
+        Config config = getConfig();
         for (File file1 : list) {
-            String en = Helper.getTextFromFile(new File(file1, "1.txt"), Helper.getConfig(file1.getParentFile()).enc1).trim();
-            String ru = Helper.getTextFromFile(new File(file1, "2.txt"), Helper.getConfig(file1.getParentFile()).enc2).trim();
-            if (en.split("\\n\\n").length != ru.split("\\n\\n").length) {
+            String en = Helper.getTextFromFile(new File(file1, "1.txt"), config.enc1()).trim();
+            String ru = Helper.getTextFromFile(new File(file1, "2.txt"), config.enc2()).trim();
+            if (en.split(config.divider()).length != ru.split(config.divider()).length) {
                 return false;
             }
         }
         return true;
+    }
+
+    public void edit() {
+        edited = true;
+    }
+
+    public boolean isEdited() {
+        return edited;
+    }
+    
+    public Config getConfig()  {
+        return Helper.getConfig(file);
     }
 }

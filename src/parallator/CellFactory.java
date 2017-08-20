@@ -27,8 +27,9 @@ public class CellFactory implements Callback<TableColumn<Paragraph, String>, Tab
         text.wrappingWidthProperty().bind(cell.widthProperty());
         text.textProperty().bind(cell.itemProperty());
         text.wrappingWidthProperty().bind(cell.widthProperty());
-        cell.setMinHeight(cell.itemProperty().toString().length() * 50 / 100);
+        cell.setMinHeight(cell.itemProperty().toString().length() * 60 / 100);
         text.setOnMouseClicked(t -> {
+            controller.edit();
             if (t.getButton() == MouseButton.PRIMARY) {
                 String data = param.getCellObservableValue(cell.getIndex()).getValue();
                 final String[] parts = data.split("\\.");

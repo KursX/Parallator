@@ -5,21 +5,23 @@ import javafx.application.Platform;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
-import javafx.scene.control.Menu;
-import javafx.scene.control.MenuBar;
-import javafx.scene.control.MenuItem;
+import javafx.scene.control.*;
+import javafx.scene.input.KeyCombination;
 import javafx.scene.layout.VBox;
 import javafx.stage.Stage;
 import parallator.controller.DialogController;
 import parallator.controller.RootController;
 
+import java.io.File;
+import java.util.Optional;
+
 public class Main extends Application {
 
     private RootController rootController;
-    private DialogController dialogController;
 
     @Override
     public void start(Stage rootStage) throws Exception {
+
         Stage dialogStage = new Stage();
 
         FXMLLoader loader = new FXMLLoader(getClass().getResource("layouts/main.fxml"));
@@ -35,27 +37,29 @@ public class Main extends Application {
         dialogStage.setTitle("Отправка");
 
         rootController = loader.getController();
-        dialogController = dialogLoader.getController();
+        DialogController dialogController = dialogLoader.getController();
 
         rootStage.setScene(rootScene);
         dialogStage.setScene(dialogScene);
 
-        rootController.setStage(rootStage);
         dialogController.init(dialogStage, this);
-
 
         MenuBar menuBar = new MenuBar();
         Menu file = new Menu("Файл");
         Menu help = new Menu("Помощь");
         Menu enc1 = new Menu("Кодировка исходника");
         Menu enc2 = new Menu("Кодировка перевода");
+        Menu divider = new Menu("Разделитель абзацев");
 
         MenuItem open = new MenuItem("Открыть");
+        open.setAccelerator(KeyCombination.keyCombination("Ctrl+O"));
         MenuItem save = new MenuItem("Сохранить");
+        save.setAccelerator(KeyCombination.keyCombination("Ctrl+S"));
         MenuItem about = new MenuItem("О Программе");
         MenuItem update = new MenuItem("Обновить программу");
         MenuItem send = new MenuItem("Отправить KursX");
         MenuItem refresh = new MenuItem("Обновить текст");
+        refresh.setAccelerator(KeyCombination.keyCombination("Ctrl+R"));
 
         for (String charset : Helper.charsets) {
             MenuItem e1 = new MenuItem(charset);
@@ -63,32 +67,53 @@ public class Main extends Application {
             enc1.getItems().add(e1);
             enc2.getItems().add(e2);
             e1.setOnAction(event -> {
-                Config config = Helper.getConfig(rootController.getFile());
-                config.enc1 = e1.getText();
-                Helper.saveConfig(config, rootController.getFile());
+                if (rootController.getFile() == null) return;
+                Helper.getConfig(rootController.getFile()).setEnc1(e1.getText());
                 rootController.change();
             });
             e2.setOnAction(event -> {
-                Config config = Helper.getConfig(rootController.getFile());
-                config.enc2 = e2.getText();
-                Helper.saveConfig(config, rootController.getFile());
+                if (rootController.getFile() == null) return;
+                Helper.getConfig(rootController.getFile()).setEnc2(e2.getText());
+                rootController.change();
+            });
+        }
+
+        for (int i = 0; i < Helper.dividers.length; i++) {
+            MenuItem item = new MenuItem(Helper.dividers[i]);
+            divider.getItems().add(item);
+            final int index = i;
+            item.setOnAction(event -> {
+                if (rootController.getFile() == null) return;
+                Helper.getConfig(rootController.getFile()).setDivider(Helper.dividersRegs[index]);
                 rootController.change();
             });
         }
 
         send.setOnAction(event -> {
-            if (rootController.getFile() != null) {
-                dialogStage.show();
-                Platform.runLater(() -> dialogStage.getScene().getRoot().requestFocus());
+            if (rootController.getFile() == null) return;
+            dialogStage.show();
+            Platform.runLater(() -> dialogStage.getScene().getRoot().requestFocus());
+        });
+        about.setOnAction(event -> Toast.makeText(rootStage, "Parallator v0.4 by KursX \n kursxinc@gmail.com", 5000));
+        update.setOnAction(event -> Helper.update());
+        open.setOnAction(event -> {
+            File dir = Helper.showDirectoryChooser(rootScene);
+            if (dir != null) {
+                MainConfig mainConfig = Helper.getMainConfig();
+                mainConfig.setBookPath(dir.getAbsolutePath());
+                rootController.open(dir);
             }
         });
-        about.setOnAction(event -> Toast.makeText(rootStage, "Parallator v0.3 by KursX \n kursxinc@gmail.com", 5000));
-        update.setOnAction(event -> Helper.update());
-        open.setOnAction(event -> rootController.open());
-        save.setOnAction(event -> rootController.save());
-        refresh.setOnAction(event -> rootController.change());
+        save.setOnAction(event -> {
+            if (rootController.getFile() == null) return;
+            rootController.save();
+        });
+        refresh.setOnAction(event -> {
+            if (rootController.getFile() == null) return;
+            rootController.change();
+        });
 
-        file.getItems().addAll(open, save, send, enc1, enc2, refresh);
+        file.getItems().addAll(open, save, enc1, enc2, divider, refresh, send);
         help.getItems().addAll(update, about);
 
         menuBar.getMenus().addAll(file, help);
@@ -97,8 +122,20 @@ public class Main extends Application {
 
         rootStage.setMaximized(true);
         rootStage.show();
+        rootStage.setOnCloseRequest(event -> {
+            if (rootController.getFile() == null || !rootController.isEdited()) return;
+            Alert alert = new Alert(Alert.AlertType.WARNING);
+            alert.setHeaderText("Сохранить перед выходом?");
+            alert.getButtonTypes().setAll(ButtonType.YES, ButtonType.NO, ButtonType.CANCEL);
+            Optional<ButtonType> result = alert.showAndWait();
+            if (result.isPresent() && result.get() == ButtonType.YES) {
+                rootController.save();
+            }
+            if (result.isPresent() && result.get() == ButtonType.CANCEL) {
+                event.consume();
+            }
+        });
     }
-
 
     public static void main(String[] args) {
         launch(args);
@@ -106,9 +143,5 @@ public class Main extends Application {
 
     public RootController getRootController() {
         return rootController;
-    }
-
-    public DialogController getDialogController() {
-        return dialogController;
     }
 }
