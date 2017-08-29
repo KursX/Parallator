@@ -17,22 +17,22 @@ public class Book {
         }
     }
 
-    String lang = "en";
-    String name;
-    String rusName;
-    String author;
-    String hash = "";
-    String thumbnail = "";
-    public String filename = "";
-    int size;
-    Lang[] langs;
+    private String lang = "en";
+    private String name;
+    private String rusName;
+    private String author;
+    private String hash = "";
+    private String thumbnail = "";
+    private String filename = "";
+    private int size;
+    private Lang[] langs;
+    private List<Chapter> chapters;
 
-    public List<Chapter> chapters;
-
-    public Book(String name, String rusName, String author,  String authorEn,  String lang) {
+    public Book(String name, String rusName, String author,  String authorEn,  String lang, List<Chapter> chapters) {
         this.name = name;
         this.lang = lang;
         this.rusName = rusName;
+        this.chapters = chapters;
         this.author = author;
         langs = new Lang[] {
                 new Lang("en", name, authorEn),

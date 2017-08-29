@@ -1,13 +1,11 @@
 package parallator.controller;
 
+import javafx.application.Platform;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
-import javafx.scene.control.Control;
-import javafx.scene.control.TableCell;
-import javafx.scene.control.TableColumn;
-import javafx.scene.control.TableView;
+import javafx.scene.control.*;
 import javafx.scene.control.cell.PropertyValueFactory;
 import javafx.scene.input.MouseButton;
 import javafx.scene.text.Text;
@@ -19,7 +17,7 @@ import java.io.IOException;
 import java.net.URL;
 import java.util.*;
 
-public class RootController implements Initializable {
+public class MainController implements Initializable {
 
     private List<String> ens, rus;
     private File file, chasedFile;
@@ -64,6 +62,33 @@ public class RootController implements Initializable {
         chapters.getSelectionModel().select(getConfig().getLastChapter());
     }
 
+    public void statistics() {
+        new Thread(() -> {
+            Config config = getConfig();
+            int enLength = 0, paragraphs = 0, words = 0;
+            for (File file1 : list) {
+                if (!file1.getAbsolutePath().equals(file.getAbsolutePath())) {
+                    String en = Helper.getTextFromFile(new File(file1, "1.txt"), config.enc1()).trim();
+                    enLength += en.length();
+                    paragraphs += en.split(config.divider()).length;
+                    words += en.split("[ .,:;\"?()!-]").length;
+                }
+            }
+            for (String en : ens) {
+                enLength += en.length();
+                words += en.split("[ .,:;\"?()!-]").length;
+            }
+            paragraphs += ens.size();
+            final int enL = enLength, p = paragraphs, w = words;
+            Platform.runLater(() -> {
+                digitsEn.setText(enL + "");
+                MainController.this.paragraphs.setText(p + "");
+                MainController.this.words.setText(w + "");
+            });
+        }).start();
+
+    }
+
     @FXML
     private TableView<Paragraph> table;
 
@@ -75,6 +100,9 @@ public class RootController implements Initializable {
 
     @FXML
     private TableColumn<Paragraph, String> input, output;
+
+    @FXML
+    private Label digitsEn, paragraphs, words;
 
     @Override
     public void initialize(URL location, ResourceBundle resources) {
@@ -115,6 +143,22 @@ public class RootController implements Initializable {
         } else {
             rus.remove(position);
         }
+        show();
+    }
+
+    public void up(int position, boolean left) {
+        List<String> list = left ? ens : rus;
+        String line = list.get(position) + " " + list.get(position + 1);
+        list.set(position + 1, line);
+        list.remove(position);
+        show();
+    }
+
+    public void down(int position, boolean left) {
+        List<String> list = left ? ens : rus;
+        String line = list.get(position - 1) + " " + list.get(position);
+        list.set(position - 1, line);
+        list.remove(position);
         show();
     }
 
@@ -173,22 +217,34 @@ public class RootController implements Initializable {
             lines.add(new Paragraph(i < ens.size() ? ens.get(i) : "", i < rus.size() ? rus.get(i) : ""));
         }
         table.setItems(lines);
+        statistics();
     }
 
     public File getFile() {
         return file;
     }
 
-    public boolean validate() {
+    public List<Chapter> validate() {
+        List<Chapter> chapters = new ArrayList<>();
         Config config = getConfig();
         for (File file1 : list) {
+            List<Paragraph> paragraphs = new ArrayList<>();
+            
             String en = Helper.getTextFromFile(new File(file1, "1.txt"), config.enc1()).trim();
             String ru = Helper.getTextFromFile(new File(file1, "2.txt"), config.enc2()).trim();
-            if (en.split(config.divider()).length != ru.split(config.divider()).length) {
-                return false;
+            String[] ens = en.split(config.divider());
+            String[] rus = ru.split(config.divider());
+            if (ens.length != rus.length) {
+                return null;
             }
+
+            for (int index = 0; index < ens.length; index++) {
+                paragraphs.add(new Paragraph(ens[index], rus[index]));
+            }
+            Chapter chapter = new Chapter("Chapter ", null, paragraphs);
+            chapters.add(chapter);
         }
-        return true;
+        return chapters;
     }
 
     public void edit() {

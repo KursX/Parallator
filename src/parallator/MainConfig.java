@@ -10,8 +10,7 @@ public class MainConfig {
 
     private String path;
 
-    public MainConfig(File file) {
-        path = file.getAbsolutePath();
+    public MainConfig() {
     }
 
     public void save() {

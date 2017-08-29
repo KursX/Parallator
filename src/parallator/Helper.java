@@ -102,7 +102,7 @@ public class Helper {
         File file = new File(workingDirectory, "config");
         String text = getTextFromFile(file, UTF_8);
         if (text == null) {
-            MainConfig config = new MainConfig(file);
+            MainConfig config = new MainConfig();
             config.save();
             return config;
         }

@@ -4,7 +4,7 @@
 <?import javafx.scene.control.*?>
 <?import javafx.scene.layout.*?>
 <VBox xmlns="http://javafx.com/javafx/8.0.112-ea" xmlns:fx="http://javafx.com/fxml/1"
-      fx:controller="parallator.controller.RootController">
+      fx:controller="parallator.controller.MainController">
 
     <HBox VBox.vgrow="ALWAYS">
         <TableView fx:id="chapters" maxWidth="80">
@@ -21,4 +21,12 @@
         </TableView>
     </HBox>
 
+    <HBox>
+        <Label text="Исходник Количество символов: "/>
+        <Label fx:id="digitsEn"/>
+        <Label text="  Параграфоф: "/>
+        <Label fx:id="paragraphs" />
+        <Label text="  Слов: "/>
+        <Label fx:id="words" />
+    </HBox>
 </VBox>

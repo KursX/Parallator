@@ -4,16 +4,16 @@ import javafx.scene.control.*;
 import javafx.scene.input.MouseButton;
 import javafx.scene.text.Text;
 import javafx.util.Callback;
-import parallator.controller.RootController;
+import parallator.controller.MainController;
 
 import java.util.Optional;
 
 public class CellFactory implements Callback<TableColumn<Paragraph, String>, TableCell<Paragraph, String>> {
 
-    private RootController controller;
+    private MainController controller;
     private boolean en;
 
-    public CellFactory(RootController controller, boolean left) {
+    public CellFactory(MainController controller, boolean left) {
         this.controller = controller;
         this.en = left;
     }
@@ -28,13 +28,13 @@ public class CellFactory implements Callback<TableColumn<Paragraph, String>, Tab
         text.textProperty().bind(cell.itemProperty());
         text.wrappingWidthProperty().bind(cell.widthProperty());
         cell.setMinHeight(cell.itemProperty().toString().length() * 60 / 100);
-        text.setOnMouseClicked(t -> {
+        cell.setOnMouseClicked(t -> {
             controller.edit();
+            ContextMenu contextMenu = new ContextMenu();
             if (t.getButton() == MouseButton.PRIMARY) {
                 String data = param.getCellObservableValue(cell.getIndex()).getValue();
                 final String[] parts = data.split("\\.");
                 if (parts.length > 1) {
-                    ContextMenu cm = new ContextMenu();
                     for (int i = 1; i < parts.length; i++) {
                         final int index = i;
                         String left = parts[i - 1].length() > 14 ? parts[i - 1].substring(
@@ -42,19 +42,31 @@ public class CellFactory implements Callback<TableColumn<Paragraph, String>, Tab
                         String right = parts[i].length() > 14 ? parts[i].substring(0, 15) : parts[i];
                         MenuItem item = new MenuItem(left + "<- . ->" + right);
                         item.setOnAction(event -> controller.separate(cell.getIndex(), en, parts, index));
-                        cm.getItems().add(item);
+                        contextMenu.getItems().add(item);
                     }
-                    cm.show(cell, t.getScreenX(), t.getScreenY());
                 }
             } else if (t.getButton() == MouseButton.SECONDARY) {
-                Alert alert = new Alert(Alert.AlertType.WARNING);
-                alert.setHeaderText("Удалить абзац?");
-                alert.getButtonTypes().setAll(ButtonType.OK, ButtonType.CANCEL);
-                Optional<ButtonType> result = alert.showAndWait();
-                if (result.isPresent() && result.get() == ButtonType.OK) {
-                    controller.remove(cell.getIndex(), en);
-                }
+                MenuItem up = new MenuItem("Переместить вверх");
+                MenuItem delete = new MenuItem("Удалить");
+                MenuItem down = new MenuItem("Переместить вниз");
+                contextMenu.getItems().addAll(up, delete, down);
+                delete.setOnAction(event -> {
+                    Alert alert = new Alert(Alert.AlertType.WARNING);
+                    alert.setHeaderText("Удалить абзац?");
+                    alert.getButtonTypes().setAll(ButtonType.OK, ButtonType.CANCEL);
+                    Optional<ButtonType> result = alert.showAndWait();
+                    if (result.isPresent() && result.get() == ButtonType.OK) {
+                        controller.remove(cell.getIndex(), en);
+                    }
+                });
+                up.setOnAction(event -> {
+                    controller.down(cell.getIndex(), en);
+                });
+                down.setOnAction(event -> {
+                    controller.up(cell.getIndex(), en);
+                });
             }
+            contextMenu.show(cell, t.getScreenX(), t.getScreenY());
         });
         return cell;
     }
