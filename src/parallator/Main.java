@@ -10,14 +10,14 @@ import javafx.scene.input.KeyCombination;
 import javafx.scene.layout.VBox;
 import javafx.stage.Stage;
 import parallator.controller.DialogController;
-import parallator.controller.RootController;
+import parallator.controller.MainController;
 
 import java.io.File;
 import java.util.Optional;
 
 public class Main extends Application {
 
-    private RootController rootController;
+    private MainController rootController;
 
     @Override
     public void start(Stage rootStage) throws Exception {
@@ -94,7 +94,7 @@ public class Main extends Application {
             dialogStage.show();
             Platform.runLater(() -> dialogStage.getScene().getRoot().requestFocus());
         });
-        about.setOnAction(event -> Toast.makeText(rootStage, "Parallator v0.4 by KursX \n kursxinc@gmail.com", 5000));
+        about.setOnAction(event -> Toast.makeText(rootStage, "Parallator v0.5 by KursX \n kursxinc@gmail.com", 5000));
         update.setOnAction(event -> Helper.update());
         open.setOnAction(event -> {
             File dir = Helper.showDirectoryChooser(rootScene);
@@ -135,13 +135,15 @@ public class Main extends Application {
                 event.consume();
             }
         });
+        MainConfig mainConfig = Helper.getMainConfig();
+        if (mainConfig.path() != null) rootController.open(new File(mainConfig.path()));
     }
 
     public static void main(String[] args) {
         launch(args);
     }
 
-    public RootController getRootController() {
+    public MainController getRootController() {
         return rootController;
     }
 }

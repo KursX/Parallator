@@ -1,15 +1,13 @@
 package parallator.controller;
 
 import com.google.gson.Gson;
+import javafx.application.Platform;
 import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
 import javafx.scene.control.Button;
 import javafx.scene.control.TextField;
 import javafx.stage.Stage;
-import parallator.Book;
-import parallator.MailSender;
-import parallator.Main;
-import parallator.Toast;
+import parallator.*;
 
 import java.io.File;
 import java.io.IOException;
@@ -18,6 +16,7 @@ import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.List;
 import java.util.ResourceBundle;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
@@ -42,9 +41,17 @@ public class DialogController implements Initializable {
 
     @Override
     public void initialize(URL location, ResourceBundle resources) {
-        send.setOnAction(event -> send());
+        send.setOnAction(event -> {
+            Platform.runLater(() -> {
+                send.setDisable(true);
+                send.setText("Отправка");
+                cancel.setDisable(true);
+                cancel.setText("Ждите");
+            });
+            new Thread(this::send).start();
+        });
         cancel.setOnAction(event -> stage.close());
-        fields = new TextField[] {
+        fields = new TextField[]{
                 from, to, fromField, toField, fromAuthor, toAuthor
         };
     }
@@ -60,25 +67,27 @@ public class DialogController implements Initializable {
                 return;
             }
         }
-        if (main.getRootController().validate()) {
-                try {
-                    PrintWriter printWriter = new PrintWriter(new File(main.getRootController().getFile().getParentFile(), "book.json"));
-                    printWriter.print(new Gson().toJson(getBook()));
-                    printWriter.flush();
-                    printWriter.close();
-                    File zip = new File(main.getRootController().getFile().getParentFile(), "book.zip");
-                    pack(main.getRootController().getFile().getAbsolutePath(), zip.getAbsolutePath());
-                    new MailSender(mail.getText(), "").addFile(zip).send();
-                    zip.delete();
-                    stage.close();
-                } catch (Exception e) {
-                    e.printStackTrace();
-                }
-            } else {
-                Toast.makeText(stage, "Не во всех главах количество русских абзацев совпадает с количеством английских");
+        List<Chapter> chapters = main.getRootController().validate();
+        if (chapters != null) {
+            try {
+                PrintWriter printWriter = new PrintWriter(new File(main.getRootController().getFile(), "book.json"));
+                printWriter.print(new Gson().toJson(getBook(chapters)));
+                printWriter.flush();
+                printWriter.close();
+                File zip = new File(main.getRootController().getFile().getParentFile(), "book.zip");
+                if (zip.exists()) zip.delete();
+                pack(main.getRootController().getFile().getAbsolutePath(), zip.getAbsolutePath());
+                new MailSender(mail.getText(), "").addFile(zip).send();
+                zip.delete();
+                Platform.runLater(() -> stage.close());
+                Toast.makeText(stage, "Отправлено. Ждите ответа от KursX. Спасибо за помощь в развитии");
+            } catch (Exception e) {
+                e.printStackTrace();
             }
+        } else {
+            Toast.makeText(stage, "Не во всех главах количество русских абзацев совпадает с количеством английских");
+        }
     }
-
 
 
     public static void pack(String sourceDirPath, String zipFilePath) throws IOException {
@@ -100,7 +109,8 @@ public class DialogController implements Initializable {
         }
     }
 
-    public Book getBook() {
-        return new Book(fromField.getText(), toField.getText(), fromAuthor.getText(), toAuthor.getText(), from.getText());
+    public Book getBook(List<Chapter> chapters) {
+        return new Book(fromField.getText(), toField.getText(), fromAuthor.getText(),
+                toAuthor.getText(), from.getText(), chapters);
     }
 }
