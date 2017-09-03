@@ -16,6 +16,7 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.net.URL;
 import java.util.*;
+import java.util.stream.Collectors;
 
 public class MainController implements Initializable {
 
@@ -38,9 +39,7 @@ public class MainController implements Initializable {
             }
         }
         Collections.sort(list, (o1, o2) -> Integer.parseInt(o1.getName()) - Integer.parseInt(o2.getName()));
-        for (File s : list) {
-            lines.add(new Chapter(s.getName()));
-        }
+        lines.addAll(list.stream().map(s -> new Chapter(s.getName())).collect(Collectors.toList()));
         chapter.setCellValueFactory(new PropertyValueFactory<>("chapterName"));
         chapters.setItems(lines);
         chapter.setCellFactory(param -> {
@@ -50,7 +49,7 @@ public class MainController implements Initializable {
             cell.setPrefHeight(Control.USE_COMPUTED_SIZE);
             text.wrappingWidthProperty().bind(cell.widthProperty());
             text.textProperty().bind(cell.itemProperty());
-            text.setOnMouseClicked(t -> {
+            cell.setOnMouseClicked(t -> {
                 if (t.getButton() == MouseButton.PRIMARY) {
                     change(list.get(cell.getIndex()));
                     getConfig().setLastChapter(cell.getIndex());
@@ -162,14 +161,20 @@ public class MainController implements Initializable {
         show();
     }
 
-    public void separate(int position, boolean left, String[] parts, int index) {
+    public void update(int position, boolean left, String text) {
+        List<String> list = left ? ens : rus;
+        list.set(position, text);
+        show();
+    }
+
+    public void separate(int position, boolean left, List<String> parts, int index, String divider) {
         List<String> list = left ? ens : rus;
         String first = "", second = "";
-        for (int i = 0; i < parts.length; i++) {
+        for (int i = 0; i < parts.size(); i++) {
             if (i < index) {
-                first += parts[i] + ".";
+                first += parts.get(i) + divider;
             } else {
-                second += parts[i] + ".";
+                second += parts.get(i) + divider;
             }
         }
         list.remove(position);
@@ -180,6 +185,7 @@ public class MainController implements Initializable {
 
     public void save() {
         if (ens == null) return;
+        edited = false;
         StringBuilder enBuilder = new StringBuilder();
         StringBuilder ruBuilder = new StringBuilder();
         for (String en : ens) {
@@ -227,6 +233,7 @@ public class MainController implements Initializable {
     public List<Chapter> validate() {
         List<Chapter> chapters = new ArrayList<>();
         Config config = getConfig();
+        int chapterNumber = 1;
         for (File file1 : list) {
             List<Paragraph> paragraphs = new ArrayList<>();
             
@@ -241,7 +248,7 @@ public class MainController implements Initializable {
             for (int index = 0; index < ens.length; index++) {
                 paragraphs.add(new Paragraph(ens[index], rus[index]));
             }
-            Chapter chapter = new Chapter("Chapter ", null, paragraphs);
+            Chapter chapter = new Chapter("Chapter " + chapterNumber++, null, paragraphs);
             chapters.add(chapter);
         }
         return chapters;
@@ -256,6 +263,6 @@ public class MainController implements Initializable {
     }
     
     public Config getConfig()  {
-        return Helper.getConfig(file);
+        return Config.getConfig(file);
     }
 }

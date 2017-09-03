@@ -12,6 +12,7 @@ public class Config {
     private String enc1 = "utf8", enc2 = "Cp1251", divider = Helper.DIV2REG;
     public long time = 0;
     private int lastChapter = 0;
+    private Book book;
 
     public Config(File file) {
         this.file = new File(file, "config").getAbsolutePath();
@@ -27,6 +28,22 @@ public class Config {
         } catch (IOException e) {
             e.printStackTrace();
         }
+    }
+
+    public static Config getConfig(File file) {
+        if (file == null) return null;
+        String text = Helper.getTextFromFile(new File(file, "config"), Helper.UTF_8);
+        Config config;
+        try {
+            text.isEmpty();
+            config = new Gson().fromJson(Security.decrypt(text), Config.class);
+        } catch (Exception e) {
+            config = new Config(file);
+            config.save();
+            return config;
+        }
+        if (config.file() == null) config.setFile(new File(file, "config").getAbsolutePath());
+        return config;
     }
 
     public void setLastChapter(int lastChapter) {
@@ -72,5 +89,14 @@ public class Config {
 
     public String file() {
         return file;
+    }
+
+    public Book getBook() {
+        return book;
+    }
+
+    public void setBook(Book book) {
+        this.book = book;
+        save();
     }
 }

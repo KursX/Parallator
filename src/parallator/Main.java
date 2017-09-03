@@ -21,8 +21,8 @@ public class Main extends Application {
 
     @Override
     public void start(Stage rootStage) throws Exception {
+        MainConfig mainConfig = MainConfig.getMainConfig();
 
-        Stage dialogStage = new Stage();
 
         FXMLLoader loader = new FXMLLoader(getClass().getResource("layouts/main.fxml"));
         FXMLLoader dialogLoader = new FXMLLoader(getClass().getResource("layouts/book_dialog.fxml"));
@@ -34,32 +34,39 @@ public class Main extends Application {
         Scene rootScene = new Scene(root);
 
         rootStage.setTitle("Parallator");
-        dialogStage.setTitle("Отправка");
 
         rootController = loader.getController();
         DialogController dialogController = dialogLoader.getController();
 
         rootStage.setScene(rootScene);
-        dialogStage.setScene(dialogScene);
-
-        dialogController.init(dialogStage, this);
 
         MenuBar menuBar = new MenuBar();
         Menu file = new Menu("Файл");
+        Menu book = new Menu("Книга");
         Menu help = new Menu("Помощь");
         Menu enc1 = new Menu("Кодировка исходника");
         Menu enc2 = new Menu("Кодировка перевода");
         Menu divider = new Menu("Разделитель абзацев");
+        Menu last = new Menu("Последние книги");
 
+        MenuItem info = new MenuItem("Описание");
         MenuItem open = new MenuItem("Открыть");
         open.setAccelerator(KeyCombination.keyCombination("Ctrl+O"));
         MenuItem save = new MenuItem("Сохранить");
         save.setAccelerator(KeyCombination.keyCombination("Ctrl+S"));
         MenuItem about = new MenuItem("О Программе");
         MenuItem update = new MenuItem("Обновить программу");
-        MenuItem send = new MenuItem("Отправить KursX");
         MenuItem refresh = new MenuItem("Обновить текст");
         refresh.setAccelerator(KeyCombination.keyCombination("Ctrl+R"));
+
+        mainConfig.getPathes().stream().filter(path -> new File(path).exists()).forEach(path -> {
+            MenuItem item = new MenuItem(path);
+            last.getItems().add(item);
+            item.setOnAction(event -> {
+                mainConfig.setBookPath(path);
+                rootController.open(new File(path));
+            });
+        });
 
         for (String charset : Helper.charsets) {
             MenuItem e1 = new MenuItem(charset);
@@ -68,12 +75,12 @@ public class Main extends Application {
             enc2.getItems().add(e2);
             e1.setOnAction(event -> {
                 if (rootController.getFile() == null) return;
-                Helper.getConfig(rootController.getFile()).setEnc1(e1.getText());
+                Config.getConfig(rootController.getFile()).setEnc1(e1.getText());
                 rootController.change();
             });
             e2.setOnAction(event -> {
                 if (rootController.getFile() == null) return;
-                Helper.getConfig(rootController.getFile()).setEnc2(e2.getText());
+                Config.getConfig(rootController.getFile()).setEnc2(e2.getText());
                 rootController.change();
             });
         }
@@ -84,22 +91,26 @@ public class Main extends Application {
             final int index = i;
             item.setOnAction(event -> {
                 if (rootController.getFile() == null) return;
-                Helper.getConfig(rootController.getFile()).setDivider(Helper.dividersRegs[index]);
+                Config.getConfig(rootController.getFile()).setDivider(Helper.dividersRegs[index]);
                 rootController.change();
             });
         }
 
-        send.setOnAction(event -> {
+        info.setOnAction(event -> {
             if (rootController.getFile() == null) return;
+            Stage dialogStage = new Stage();
+            dialogStage.setTitle("Отправка");
+            dialogStage.setScene(dialogScene);
+
+            dialogController.init(dialogStage, this);
             dialogStage.show();
             Platform.runLater(() -> dialogStage.getScene().getRoot().requestFocus());
         });
-        about.setOnAction(event -> Toast.makeText(rootStage, "Parallator v0.5 by KursX \n kursxinc@gmail.com", 5000));
+        about.setOnAction(event -> Toast.makeText(rootStage, "Parallator v0.6 by KursX \n kursxinc@gmail.com", 5000));
         update.setOnAction(event -> Helper.update());
         open.setOnAction(event -> {
             File dir = Helper.showDirectoryChooser(rootScene);
             if (dir != null) {
-                MainConfig mainConfig = Helper.getMainConfig();
                 mainConfig.setBookPath(dir.getAbsolutePath());
                 rootController.open(dir);
             }
@@ -113,10 +124,12 @@ public class Main extends Application {
             rootController.change();
         });
 
-        file.getItems().addAll(open, save, enc1, enc2, divider, refresh, send);
+        file.getItems().addAll(open, save, last, enc1, enc2, divider, refresh);
         help.getItems().addAll(update, about);
+        book.getItems().addAll(info);
 
-        menuBar.getMenus().addAll(file, help);
+        menuBar.getMenus().addAll(file, help, book);
+
 
         ((VBox) rootScene.getRoot()).getChildren().add(0, menuBar);
 
@@ -135,7 +148,6 @@ public class Main extends Application {
                 event.consume();
             }
         });
-        MainConfig mainConfig = Helper.getMainConfig();
         if (mainConfig.path() != null) rootController.open(new File(mainConfig.path()));
     }
 
