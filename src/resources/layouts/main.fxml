@@ -7,7 +7,7 @@
       fx:controller="parallator.controller.MainController">
 
     <HBox VBox.vgrow="ALWAYS">
-        <TableView fx:id="chapters" maxWidth="80">
+        <TableView fx:id="chapters" maxWidth="80" stylesheets="/resources/styles/styles.css">
             <columns>
                 <TableColumn fx:id="chapter" text="Главы"/>
             </columns>

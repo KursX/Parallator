@@ -5,10 +5,12 @@ import com.google.gson.Gson;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 
 public class MainConfig {
 
-    private String path;
+    private List<String> pathes = new ArrayList<>();
 
     public MainConfig() {
     }
@@ -16,7 +18,7 @@ public class MainConfig {
     public void save() {
         File workingDirectory = new File(System.getProperty("user.dir"));
         try {
-            FileWriter wrt = new FileWriter(new File(workingDirectory, "config"));
+            FileWriter wrt = new FileWriter(new File(workingDirectory, ".config"));
             wrt.append(new Gson().toJson(this));
             wrt.flush();
             wrt.close();
@@ -26,11 +28,35 @@ public class MainConfig {
     }
 
     public String path() {
-        return path;
+        if (pathes == null) return null;
+        pathes.stream().filter(file -> !new File(file).exists()).forEachOrdered(file -> pathes.remove(file));
+        if (pathes.isEmpty()) return null;
+        return pathes.get(0);
     }
 
     public void setBookPath(String path) {
-        this.path = path;
+        if (pathes.contains(path)) {
+            pathes.remove(path);
+        }
+        pathes.add(0, path);
+        new ArrayList<>(pathes).stream().filter(file -> !new File(file).exists()).forEachOrdered(file -> pathes.remove(file));
         save();
+    }
+
+    public List<String> getPathes() {
+        new ArrayList<>(pathes).stream().filter(file -> !new File(file).exists()).forEachOrdered(file -> pathes.remove(file));
+        return pathes == null ? new ArrayList<>() : pathes;
+    }
+
+    public static MainConfig getMainConfig() {
+        File workingDirectory = new File(System.getProperty("user.dir"));
+        File file = new File(workingDirectory, ".config");
+        String text = Helper.getTextFromFile(file, Helper.UTF_8);
+        if (text == null) {
+            MainConfig config = new MainConfig();
+            config.save();
+            return config;
+        }
+        return new Gson().fromJson(text, MainConfig.class);
     }
 }

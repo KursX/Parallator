@@ -8,13 +8,14 @@ import java.io.IOException;
 
 public class Config {
 
+    public static String CONFIG = ".config";
     private String file;
-    private String enc1 = "utf8", enc2 = "Cp1251", divider = Helper.DIV2REG;
-    public long time = 0;
+    private String enc1 = Helper.UTF_8, enc2 = Helper.UTF_8, divider = Helper.DIV2REG;
     private int lastChapter = 0;
+    private Book book;
 
     public Config(File file) {
-        this.file = new File(file, "config").getAbsolutePath();
+        this.file = new File(file, CONFIG).getAbsolutePath();
     }
 
     public void save() {
@@ -27,6 +28,24 @@ public class Config {
         } catch (IOException e) {
             e.printStackTrace();
         }
+    }
+
+    public static Config getConfig(File file) {
+        if (file == null) return null;
+        String text = Helper.getTextFromFile(new File(file, CONFIG), Helper.UTF_8);
+        Config config = null;
+        try {
+            text.isEmpty();
+            config = new Gson().fromJson(Security.decrypt(text), Config.class);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        if (config == null) {
+            config = new Config(file);
+            config.save();
+        }
+        if (config.file() == null) config.setFile(new File(file, CONFIG).getAbsolutePath());
+        return config;
     }
 
     public void setLastChapter(int lastChapter) {
@@ -72,5 +91,14 @@ public class Config {
 
     public String file() {
         return file;
+    }
+
+    public Book getBook() {
+        return book;
+    }
+
+    public void setBook(Book book) {
+        this.book = book;
+        save();
     }
 }

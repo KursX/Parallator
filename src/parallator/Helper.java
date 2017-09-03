@@ -1,9 +1,9 @@
 package parallator;
 
 
-import com.google.gson.Gson;
 import javafx.scene.Scene;
 import javafx.stage.DirectoryChooser;
+import javafx.stage.FileChooser;
 
 import java.io.*;
 import java.net.URL;
@@ -85,27 +85,21 @@ public class Helper {
         return fileChooser.showDialog(scene.getWindow());
     }
 
-    public static Config getConfig(File file) {
-        String text = getTextFromFile(new File(file, "config"), UTF_8);
-        if (text == null) {
-            Config config = new Config(file);
-            config.save();
-            return config;
+    public static File showFileChooser(Scene scene) {
+        String home = System.getProperty("user.home");
+        File[] downloads = {
+                new File(home + "/Downloads/"),
+                new File(home + "/Загрузки/"),
+                new File(home)
+        };
+        FileChooser fileChooser = new FileChooser();
+        for (File download : downloads) {
+            if (download.exists()) {
+                fileChooser.setInitialDirectory(download);
+                break;
+            }
         }
-        Config config = new Gson().fromJson(Security.decrypt(text), Config.class);
-        if (config.file() == null) config.setFile(new File(file, "config").getAbsolutePath());
-        return config;
-    }
-
-    public static MainConfig getMainConfig() {
-        File workingDirectory = new File(System.getProperty("user.dir"));
-        File file = new File(workingDirectory, "config");
-        String text = getTextFromFile(file, UTF_8);
-        if (text == null) {
-            MainConfig config = new MainConfig();
-            config.save();
-            return config;
-        }
-        return new Gson().fromJson(text, MainConfig.class);
+        fileChooser.setSelectedExtensionFilter(new FileChooser.ExtensionFilter("jpg", "*.jpg"));
+        return fileChooser.showOpenDialog(scene.getWindow());
     }
 }

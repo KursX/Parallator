@@ -5,30 +5,51 @@ import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
-import javafx.scene.control.*;
-import javafx.scene.control.cell.PropertyValueFactory;
-import javafx.scene.input.MouseButton;
-import javafx.scene.text.Text;
-import parallator.*;
 
-import java.io.File;
-import java.io.FileWriter;
-import java.io.IOException;
+import javafx.scene.control.Label;
+import javafx.scene.control.TableColumn;
+import javafx.scene.control.TableView;
+import javafx.scene.control.cell.PropertyValueFactory;
+
+import parallator.Chapter;
+import parallator.Config;
+import parallator.Helper;
+import parallator.Paragraph;
+import parallator.factrory.ChapterCellFactory;
+import parallator.factrory.ParagraphCellFactory;
+
+import java.io.*;
 import java.net.URL;
 import java.util.*;
 
 public class MainController implements Initializable {
 
+    @FXML
+    private TableView<Paragraph> table;
+
+    @FXML
+    private TableView<Chapter> chapters;
+
+    @FXML
+    private TableColumn<Chapter, String> chapter;
+
+    @FXML
+    private TableColumn<Paragraph, String> input, output;
+
+    @FXML
+    private Label digitsEn, paragraphs, words;
+
     private List<String> ens, rus;
     private File file, chasedFile;
-    private List<File> list;
     private boolean edited = false;
+    private List<File> list;
 
     public void open(File file) {
         this.file = file;
-        ObservableList<Chapter> lines = FXCollections.observableArrayList();
+        chapter.setCellValueFactory(new PropertyValueFactory<>("chapterName"));
         list = new ArrayList<>();
-        for (File file1 : file.listFiles()) {
+        File[] files = file.listFiles();
+        if (files != null) for (File file1 : files) {
             if (file1.isDirectory()) {
                 try {
                     Integer.parseInt(file1.getName());
@@ -38,27 +59,7 @@ public class MainController implements Initializable {
             }
         }
         Collections.sort(list, (o1, o2) -> Integer.parseInt(o1.getName()) - Integer.parseInt(o2.getName()));
-        for (File s : list) {
-            lines.add(new Chapter(s.getName()));
-        }
-        chapter.setCellValueFactory(new PropertyValueFactory<>("chapterName"));
-        chapters.setItems(lines);
-        chapter.setCellFactory(param -> {
-            TableCell<Chapter, String> cell = new TableCell<>();
-            Text text = new Text();
-            cell.setGraphic(text);
-            cell.setPrefHeight(Control.USE_COMPUTED_SIZE);
-            text.wrappingWidthProperty().bind(cell.widthProperty());
-            text.textProperty().bind(cell.itemProperty());
-            text.setOnMouseClicked(t -> {
-                if (t.getButton() == MouseButton.PRIMARY) {
-                    change(list.get(cell.getIndex()));
-                    getConfig().setLastChapter(cell.getIndex());
-                }
-            });
-            return cell;
-        });
-        change(list.get(getConfig().getLastChapter()));
+        chapter.setCellFactory(new ChapterCellFactory(this, chapters));
         chapters.getSelectionModel().select(getConfig().getLastChapter());
     }
 
@@ -86,38 +87,24 @@ public class MainController implements Initializable {
                 MainController.this.words.setText(w + "");
             });
         }).start();
-
     }
-
-    @FXML
-    private TableView<Paragraph> table;
-
-    @FXML
-    private TableView<Chapter> chapters;
-
-    @FXML
-    private TableColumn<Chapter, String> chapter;
-
-    @FXML
-    private TableColumn<Paragraph, String> input, output;
-
-    @FXML
-    private Label digitsEn, paragraphs, words;
 
     @Override
     public void initialize(URL location, ResourceBundle resources) {
         input.setCellValueFactory(new PropertyValueFactory<>("en"));
         output.setCellValueFactory(new PropertyValueFactory<>("ru"));
 
-        input.setCellFactory(new CellFactory(this, true));
-        output.setCellFactory(new CellFactory(this, false));
+        input.setCellFactory(new ParagraphCellFactory(this, true));
+        output.setCellFactory(new ParagraphCellFactory(this, false));
 
         input.prefWidthProperty().bind(table.widthProperty().multiply(0.5));
         output.prefWidthProperty().bind(table.widthProperty().multiply(0.5));
         chapter.prefWidthProperty().bind(chapters.widthProperty().multiply(1));
+
+        table.setSelectionModel(null);
     }
 
-    public void change(File chapterFile) {
+    public void showChapter(File chapterFile) {
         chasedFile = chapterFile;
         Config config = getConfig();
 
@@ -130,11 +117,18 @@ public class MainController implements Initializable {
         input.setText("Исходник (" + ens.size() + ")");
         output.setText("Перевод (" + rus.size() + ")");
 
+        chapters.getSelectionModel().select(getConfig().getLastChapter());
+
         show();
     }
 
-    public void change() {
-        change(chasedFile);
+    public void showChapter(int index) {
+        getConfig().setLastChapter(index);
+        showChapter(getFilesList().get(index));
+    }
+
+    public void showChapter() {
+        showChapter(chasedFile);
     }
 
     public void remove(int position, boolean left) {
@@ -143,6 +137,7 @@ public class MainController implements Initializable {
         } else {
             rus.remove(position);
         }
+        edit();
         show();
     }
 
@@ -151,6 +146,7 @@ public class MainController implements Initializable {
         String line = list.get(position) + " " + list.get(position + 1);
         list.set(position + 1, line);
         list.remove(position);
+        edit();
         show();
     }
 
@@ -159,27 +155,37 @@ public class MainController implements Initializable {
         String line = list.get(position - 1) + " " + list.get(position);
         list.set(position - 1, line);
         list.remove(position);
+        edit();
         show();
     }
 
-    public void separate(int position, boolean left, String[] parts, int index) {
+    public void update(int position, boolean left, String text) {
+        List<String> list = left ? ens : rus;
+        list.set(position, text);
+        edit();
+        show();
+    }
+
+    public void separate(int position, boolean left, List<String> parts, int index, String divider) {
         List<String> list = left ? ens : rus;
         String first = "", second = "";
-        for (int i = 0; i < parts.length; i++) {
+        for (int i = 0; i < parts.size(); i++) {
             if (i < index) {
-                first += parts[i] + ".";
+                first += parts.get(i) + divider;
             } else {
-                second += parts[i] + ".";
+                second += parts.get(i) + divider;
             }
         }
         list.remove(position);
         list.add(position, second.trim());
         list.add(position, first.trim());
+        edit();
         show();
     }
 
     public void save() {
         if (ens == null) return;
+        edited = false;
         StringBuilder enBuilder = new StringBuilder();
         StringBuilder ruBuilder = new StringBuilder();
         for (String en : ens) {
@@ -191,18 +197,20 @@ public class MainController implements Initializable {
         }
 
         try {
-            List<Paragraph> lines = new ArrayList<>();
-            for (int i = 0; i < (ens.size() > rus.size() ? ens.size() : rus.size()); i++) {
-                lines.add(new Paragraph(i < ens.size() ? ens.get(i) : "", i < rus.size() ? rus.get(i) : ""));
-            }
-            FileWriter wrt = new FileWriter(new File(chasedFile, "1.txt"));
-            wrt.append(enBuilder);
-            wrt.flush();
+            Writer writer1 = new OutputStreamWriter(
+                    new FileOutputStream(new File(chasedFile, "1.txt")), getConfig().enc1());
+            writer1.append(enBuilder);
+            writer1.flush();
 
-            wrt = new FileWriter(new File(chasedFile, "2.txt"));
-            wrt.append(ruBuilder);
-            wrt.flush();
+            Writer writer2 = new OutputStreamWriter(
+                    new FileOutputStream(new File(chasedFile, "2.txt")), getConfig().enc2());
+            writer2.append(ruBuilder);
+            writer2.flush();
 
+//            List<Paragraph> lines = new ArrayList<>();
+//            for (int i = 0; i < (ens.size() > rus.size() ? ens.size() : rus.size()); i++) {
+//                lines.add(new Paragraph(i < ens.size() ? ens.get(i) : "", i < rus.size() ? rus.get(i) : ""));
+//            }
 //            wrt = new FileWriter(new File(chasedFile, chasedFile.getName() + ".json"));
 //            wrt.append(new Gson().toJson(lines));
 //            wrt.flush();
@@ -227,9 +235,10 @@ public class MainController implements Initializable {
     public List<Chapter> validate() {
         List<Chapter> chapters = new ArrayList<>();
         Config config = getConfig();
+        int chapterNumber = 1;
         for (File file1 : list) {
             List<Paragraph> paragraphs = new ArrayList<>();
-            
+
             String en = Helper.getTextFromFile(new File(file1, "1.txt"), config.enc1()).trim();
             String ru = Helper.getTextFromFile(new File(file1, "2.txt"), config.enc2()).trim();
             String[] ens = en.split(config.divider());
@@ -241,7 +250,7 @@ public class MainController implements Initializable {
             for (int index = 0; index < ens.length; index++) {
                 paragraphs.add(new Paragraph(ens[index], rus[index]));
             }
-            Chapter chapter = new Chapter("Chapter ", null, paragraphs);
+            Chapter chapter = new Chapter("Chapter " + chapterNumber++, null, paragraphs);
             chapters.add(chapter);
         }
         return chapters;
@@ -254,8 +263,12 @@ public class MainController implements Initializable {
     public boolean isEdited() {
         return edited;
     }
-    
-    public Config getConfig()  {
-        return Helper.getConfig(file);
+
+    public Config getConfig() {
+        return Config.getConfig(file);
+    }
+
+    public List<File> getFilesList() {
+        return list;
     }
 }
