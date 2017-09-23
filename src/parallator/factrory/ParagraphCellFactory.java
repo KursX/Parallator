@@ -5,9 +5,12 @@ import javafx.scene.Parent;
 import javafx.scene.Scene;
 import javafx.scene.control.*;
 import javafx.scene.input.MouseButton;
+import javafx.scene.paint.Color;
+import javafx.scene.text.Font;
 import javafx.scene.text.Text;
 import javafx.stage.Stage;
 import javafx.util.Callback;
+import parallator.MainConfig;
 import parallator.Paragraph;
 import parallator.controller.EditDialogController;
 import parallator.controller.MainController;
@@ -22,54 +25,55 @@ public class ParagraphCellFactory implements Callback<TableColumn<Paragraph, Str
 
     private MainController controller;
     private boolean en;
-    private final String dividersRegex = "(\\.”|\\.\"|\\.|!|\\?|\\.{3}|…)";
+    private ContextMenu contextMenu;
+    private static final String dividersRegex = "(\\.”|\\.\"|\\.|!|\\?|\\.{3}|…)";
 
     public ParagraphCellFactory(MainController controller, boolean left) {
         this.controller = controller;
         this.en = left;
     }
 
-    @Override
     public TableCell<Paragraph, String> call(final TableColumn<Paragraph, String> param) {
-        TableCell<Paragraph, String> cell = new TableCell<>();
+        TableCell<Paragraph, String> cell = new TableCell<Paragraph, String>() {
+            protected void updateItem(String data, boolean empty) {
+                super.updateItem(data, empty);
+                if (!empty) {
+                    if ((data.length() > 500 || getParts(data).size() > 5) && controller.getConfig().isRed()) {
+                        ((Text) getGraphic()).setFill(Color.RED);
+                    } else {
+                        ((Text) getGraphic()).setFill(Color.BLACK);
+                    }
+                }
+            }
+        };
+
         Text text = new Text();
-        cell.setGraphic(text);
+        text.setFont(new Font(MainConfig.getMainConfig().getFontSize()));
         cell.setPrefHeight(Control.USE_COMPUTED_SIZE);
         text.wrappingWidthProperty().bind(cell.widthProperty());
         text.textProperty().bind(cell.itemProperty());
-        text.wrappingWidthProperty().bind(cell.widthProperty());
         cell.setMinHeight(cell.itemProperty().toString().length() * 60 / 100);
+
+
+        cell.setGraphic(text);
         cell.setOnMouseClicked(t -> {
             String data = param.getCellObservableValue(cell.getIndex()).getValue();
-            ContextMenu contextMenu = new ContextMenu();
+            List<String> parts = getParts(data);
+            new ArrayList<>(parts).stream().filter(part -> part.trim().length() < 2).forEach(parts::remove);
+            if (contextMenu != null) contextMenu.hide();
+            contextMenu = new ContextMenu();
             if (t.getButton() == MouseButton.PRIMARY) {
                 MenuItem edit = new MenuItem("Редактировать");
-                edit.setOnAction(event -> {
-                    try {
-                        FXMLLoader loader = new FXMLLoader(getClass().getResource("/resources/layouts/edit_dialog.fxml"));
-                        Parent root = loader.load();
-                        Scene dialogScene = new Scene(root);
-                        Stage dialogStage = new Stage();
-                        dialogStage.setScene(dialogScene);
-                        EditDialogController dialogController = loader.getController();
-                        dialogController.init(dialogStage, controller, en, cell.getIndex());
-                        dialogController.setText(data);
-                        dialogStage.show();
-                    } catch (IOException e) {
-                        e.printStackTrace();
-                    }
-                });
+                edit.setOnAction(event -> showEdit(data, cell.getIndex()));
                 List<String> dividers = new ArrayList<>();
-                int position = 0;
-                List<String> parts = new ArrayList<>(Arrays.asList(data.split(dividersRegex)));
-
-                new ArrayList<>(parts).stream().filter(part -> part.trim().length() < 2).forEach(parts::remove);
+                int start = 0;
 
                 for (int index = 1; index < parts.size(); index++) {
-                    position += parts.get(index - 1).length();
-                    String divider = data.substring(position, data.indexOf(parts.get(index)));
+                    start += parts.get(index - 1).length();
+                    int end = data.indexOf(parts.get(index), start);
+                    String divider = data.substring(start, end);
                     dividers.add(divider);
-                    position += divider.length();
+                    start += divider.length();
                 }
 
                 if (parts.size() > 1) {
@@ -84,6 +88,9 @@ public class ParagraphCellFactory implements Callback<TableColumn<Paragraph, Str
                         contextMenu.getItems().add(item);
                     }
                     contextMenu.getItems().add(new SeparatorMenuItem());
+                } else {
+                    showEdit(data, cell.getIndex());
+                    return;
                 }
 
                 contextMenu.getItems().add(edit);
@@ -111,5 +118,30 @@ public class ParagraphCellFactory implements Callback<TableColumn<Paragraph, Str
             contextMenu.show(cell, t.getScreenX(), t.getScreenY());
         });
         return cell;
+    }
+
+    private void showEdit(String data, int index) {
+        try {
+            FXMLLoader loader = new FXMLLoader(getClass().getResource("/resources/layouts/dialog_edit.fxml"));
+            Parent root = loader.load();
+            Scene dialogScene = new Scene(root);
+            Stage dialogStage = new Stage();
+            dialogStage.setScene(dialogScene);
+            EditDialogController dialogController = loader.getController();
+            dialogController.init(dialogStage, () -> {
+                controller.update(index, en, dialogController.getText());
+                dialogController.close();
+            });
+            dialogController.setText(data);
+            dialogStage.show();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    public static List<String> getParts(String data) {
+        List<String> parts = new ArrayList<>(Arrays.asList(data.split(dividersRegex)));
+        new ArrayList<>(parts).stream().filter(part -> part.trim().length() < 2).forEach(parts::remove);
+        return parts;
     }
 }

@@ -1,16 +1,14 @@
 package parallator.controller;
 
+import com.sun.javafx.scene.control.skin.TableViewSkin;
+import com.sun.javafx.scene.control.skin.VirtualFlow;
 import javafx.application.Platform;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
-
-import javafx.scene.control.Label;
-import javafx.scene.control.TableColumn;
-import javafx.scene.control.TableView;
+import javafx.scene.control.*;
 import javafx.scene.control.cell.PropertyValueFactory;
-
 import parallator.Chapter;
 import parallator.Config;
 import parallator.Helper;
@@ -18,6 +16,7 @@ import parallator.Paragraph;
 import parallator.factrory.ChapterCellFactory;
 import parallator.factrory.ParagraphCellFactory;
 
+import javax.xml.bind.ValidationException;
 import java.io.*;
 import java.net.URL;
 import java.util.*;
@@ -28,63 +27,43 @@ public class MainController implements Initializable {
     private TableView<Paragraph> table;
 
     @FXML
-    private TableView<Chapter> chapters;
-
-    @FXML
-    private TableColumn<Chapter, String> chapter;
+    private TreeView<File> chapters;
 
     @FXML
     private TableColumn<Paragraph, String> input, output;
 
     @FXML
-    private Label digitsEn, paragraphs, words;
+    private Label statistics;
 
+    @FXML
+    RadioButton red;
+
+    private VirtualFlow virtualFlow;
     private List<String> ens, rus;
     private File file, chasedFile;
     private boolean edited = false;
-    private List<File> list;
 
     public void open(File file) {
         this.file = file;
-        chapter.setCellValueFactory(new PropertyValueFactory<>("chapterName"));
-        list = new ArrayList<>();
-        File[] files = file.listFiles();
-        if (files != null) for (File file1 : files) {
-            if (file1.isDirectory()) {
-                try {
-                    Integer.parseInt(file1.getName());
-                    list.add(file1);
-                } catch (Exception ignored) {
-                }
-            }
-        }
-        Collections.sort(list, (o1, o2) -> Integer.parseInt(o1.getName()) - Integer.parseInt(o2.getName()));
-        chapter.setCellFactory(new ChapterCellFactory(this, chapters));
-        chapters.getSelectionModel().select(getConfig().getLastChapter());
+        chapters.setCellFactory(new ChapterCellFactory(this, chapters, file));
     }
 
     public void statistics() {
         new Thread(() -> {
             Config config = getConfig();
             int enLength = 0, paragraphs = 0, words = 0;
-            for (File file1 : list) {
-                if (!file1.getAbsolutePath().equals(file.getAbsolutePath())) {
-                    String en = Helper.getTextFromFile(new File(file1, "1.txt"), config.enc1()).trim();
-                    enLength += en.length();
-                    paragraphs += en.split(config.divider()).length;
-                    words += en.split("[ .,:;\"?()!-]").length;
-                }
-            }
-            for (String en : ens) {
+            for (File subFile : ChapterCellFactory.getFilesList(file)) {
+                String en = Helper.getTextFromFile(new File(subFile, "1.txt"), config.enc1()).trim();
                 enLength += en.length();
+                paragraphs += en.split(config.divider()).length;
                 words += en.split("[ .,:;\"?()!-]").length;
             }
-            paragraphs += ens.size();
             final int enL = enLength, p = paragraphs, w = words;
+            float quality[] = getPercent(file);
             Platform.runLater(() -> {
-                digitsEn.setText(enL + "");
-                MainController.this.paragraphs.setText(p + "");
-                MainController.this.words.setText(w + "");
+                MainController.this.statistics.setText(
+                        String.format("Исходник Количество символов: %1$d Параграфоф: %2$d Слов: %3$d Оценка разбития: %4$.2f%%",
+                                enL, p, w, (quality[1] - quality[0]) * 100 / quality[1] ));
             });
         }).start();
     }
@@ -99,9 +78,14 @@ public class MainController implements Initializable {
 
         input.prefWidthProperty().bind(table.widthProperty().multiply(0.5));
         output.prefWidthProperty().bind(table.widthProperty().multiply(0.5));
-        chapter.prefWidthProperty().bind(chapters.widthProperty().multiply(1));
 
         table.setSelectionModel(null);
+
+        Platform.runLater(() -> {
+            TableViewSkin tableSkin = (TableViewSkin) table.getSkin();
+            virtualFlow = (VirtualFlow) tableSkin.getChildren().get(1);
+        });
+
     }
 
     public void showChapter(File chapterFile) {
@@ -117,14 +101,13 @@ public class MainController implements Initializable {
         input.setText("Исходник (" + ens.size() + ")");
         output.setText("Перевод (" + rus.size() + ")");
 
-        chapters.getSelectionModel().select(getConfig().getLastChapter());
-
         show();
-    }
 
-    public void showChapter(int index) {
-        getConfig().setLastChapter(index);
-        showChapter(getFilesList().get(index));
+        red.setSelected(getConfig().isRed());
+        red.setOnAction(event -> {
+            getConfig().setRed(red.isSelected());
+            show();
+        });
     }
 
     public void showChapter() {
@@ -206,17 +189,19 @@ public class MainController implements Initializable {
                     new FileOutputStream(new File(chasedFile, "2.txt")), getConfig().enc2());
             writer2.append(ruBuilder);
             writer2.flush();
-
-//            List<Paragraph> lines = new ArrayList<>();
-//            for (int i = 0; i < (ens.size() > rus.size() ? ens.size() : rus.size()); i++) {
-//                lines.add(new Paragraph(i < ens.size() ? ens.get(i) : "", i < rus.size() ? rus.get(i) : ""));
-//            }
-//            wrt = new FileWriter(new File(chasedFile, chasedFile.getName() + ".json"));
-//            wrt.append(new Gson().toJson(lines));
-//            wrt.flush();
         } catch (IOException e) {
             e.printStackTrace();
         }
+    }
+
+    public void up() {
+        int last = virtualFlow.getFirstVisibleCellWithinViewPort().getIndex();
+        if (last > 0) table.scrollTo(last - 1);
+    }
+
+    public void down() {
+        int last = virtualFlow.getFirstVisibleCellWithinViewPort().getIndex();
+        table.scrollTo(last + 1);
     }
 
     public void show() {
@@ -233,27 +218,78 @@ public class MainController implements Initializable {
     }
 
     public List<Chapter> validate() {
-        List<Chapter> chapters = new ArrayList<>();
+        try {
+            return feelChapters(file);
+        } catch (ValidationException e) {
+            return null;
+        }
+    }
+
+    public List<Chapter> feelChapters(File file) throws ValidationException {
         Config config = getConfig();
-        int chapterNumber = 1;
-        for (File file1 : list) {
-            List<Paragraph> paragraphs = new ArrayList<>();
+        List<Chapter> chapters = new ArrayList<>();
+        if (file.isDirectory()) {
+            File[] files = file.listFiles();
+            if (files != null) {
+                for (File subFile : files) {
+                    if (ChapterCellFactory.isChapter(subFile)) {
+                        List<Paragraph> paragraphs = new ArrayList<>();
 
-            String en = Helper.getTextFromFile(new File(file1, "1.txt"), config.enc1()).trim();
-            String ru = Helper.getTextFromFile(new File(file1, "2.txt"), config.enc2()).trim();
-            String[] ens = en.split(config.divider());
-            String[] rus = ru.split(config.divider());
-            if (ens.length != rus.length) {
-                return null;
-            }
+                        String en = Helper.getTextFromFile(new File(subFile, "1.txt"), config.enc1()).trim();
+                        String ru = Helper.getTextFromFile(new File(subFile, "2.txt"), config.enc2()).trim();
+                        String[] ens = en.split(config.divider());
+                        String[] rus = ru.split(config.divider());
 
-            for (int index = 0; index < ens.length; index++) {
-                paragraphs.add(new Paragraph(ens[index], rus[index]));
+                        if (ens.length != rus.length) {
+                            throw new ValidationException("");
+                        }
+
+                        for (int index = 0; index < ens.length; index++) {
+                            paragraphs.add(new Paragraph(ens[index], rus[index]));
+                        }
+                        Chapter chapter = new Chapter(subFile.getName(), null, paragraphs);
+                        chapters.add(chapter);
+                    } else {
+                        Chapter chapter = new Chapter(subFile.getName(), feelChapters(subFile));
+                        chapters.add(chapter);
+                    }
+                }
             }
-            Chapter chapter = new Chapter("Chapter " + chapterNumber++, null, paragraphs);
-            chapters.add(chapter);
         }
         return chapters;
+    }
+
+    public float[] getPercent(File file) {
+        float[] arr = new float[2];
+        Config config = getConfig();
+        if (file.isDirectory()) {
+            File[] files = file.listFiles();
+            if (files != null) {
+                for (File subFile : files) {
+                    if (ChapterCellFactory.isChapter(subFile)) {
+
+                        String en = Helper.getTextFromFile(new File(subFile, "1.txt"), config.enc1()).trim();
+                        String ru = Helper.getTextFromFile(new File(subFile, "2.txt"), config.enc2()).trim();
+
+                        for (String s : en.split(config.divider())) {
+                            List<String> parts = ParagraphCellFactory.getParts(s);
+                            if (parts.size() > 5) arr[0]++;
+                            arr[1]++;
+                        }
+                        for (String s : ru.split(config.divider())) {
+                            List<String> parts = ParagraphCellFactory.getParts(s);
+                            if (parts.size() > 5) arr[0]++;
+                            arr[1]++;
+                        }
+                    } else {
+                        float[] arr1 = getPercent(subFile);
+                        arr[0] += arr1[0];
+                        arr[1] += arr1[1];
+                    }
+                }
+            }
+        }
+        return arr;
     }
 
     public void edit() {
@@ -268,7 +304,7 @@ public class MainController implements Initializable {
         return Config.getConfig(file);
     }
 
-    public List<File> getFilesList() {
-        return list;
+    public void redraw() {
+        table.refresh();
     }
 }

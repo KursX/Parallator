@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.ScrollPane?>
+<?import javafx.scene.layout.ColumnConstraints?>
+<?import javafx.scene.layout.GridPane?>
+<?import javafx.scene.layout.RowConstraints?>
+<?import javafx.scene.layout.VBox?>
+
+<GridPane prefHeight="209.0" prefWidth="372.0" stylesheets="@../styles/main_theme.css"
+          xmlns="http://javafx.com/javafx/8.0.112-ea" xmlns:fx="http://javafx.com/fxml/1"
+          fx:controller="parallator.controller.Fb2DialogController">
+
+    <columnConstraints>
+        <ColumnConstraints percentWidth="50"/>
+        <ColumnConstraints percentWidth="50"/>
+    </columnConstraints>
+    <padding>
+        <Insets bottom="10" left="10" right="10" top="10"/>
+    </padding>
+
+    <Button fx:id="from" text="Fb2 Исходник" GridPane.halignment="CENTER"/>
+    <Button fx:id="to" text="Fb2 Перевод" GridPane.columnIndex="1" GridPane.halignment="CENTER"/>
+
+    <ScrollPane accessibleRole="PAGINATION" pickOnBounds="false" prefWidth="125.0" GridPane.columnIndex="0"
+                GridPane.rowIndex="1" GridPane.vgrow="ALWAYS">
+        <padding>
+            <Insets bottom="10" left="10" right="10" top="10"/>
+        </padding>
+        <GridPane.margin>
+            <Insets bottom="10" left="10" right="10" top="10"/>
+        </GridPane.margin>
+        <VBox fx:id="fromBox"/>
+    </ScrollPane>
+    <ScrollPane GridPane.columnIndex="1" GridPane.rowIndex="1" GridPane.vgrow="ALWAYS">
+        <padding>
+            <Insets bottom="10" left="10" right="10" top="10"/>
+        </padding>
+        <GridPane.margin>
+            <Insets bottom="10" left="10" right="10" top="10"/>
+        </GridPane.margin>
+        <VBox fx:id="toBox"/>
+    </ScrollPane>
+
+    <Button fx:id="load" text="Импорт" GridPane.columnIndex="1" GridPane.halignment="CENTER" GridPane.rowIndex="2"/>
+    <Button fx:id="path" text="Путь к книге" GridPane.columnIndex="0" GridPane.halignment="CENTER"
+            GridPane.rowIndex="2"/>
+    <rowConstraints>
+        <RowConstraints/>
+        <RowConstraints/>
+        <RowConstraints/>
+    </rowConstraints>
+</GridPane>

@@ -11,6 +11,7 @@ import java.util.List;
 public class MainConfig {
 
     private List<String> pathes = new ArrayList<>();
+    private int fontSize = 15;
 
     public MainConfig() {
     }
@@ -40,6 +41,15 @@ public class MainConfig {
         }
         pathes.add(0, path);
         new ArrayList<>(pathes).stream().filter(file -> !new File(file).exists()).forEachOrdered(file -> pathes.remove(file));
+        save();
+    }
+
+    public int getFontSize() {
+        return fontSize;
+    }
+
+    public void setFontSize(int fontSize) {
+        this.fontSize = fontSize;
         save();
     }
 
