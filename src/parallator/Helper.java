@@ -1,6 +1,7 @@
 package parallator;
 
 
+import com.kursx.parser.fb2.Section;
 import javafx.scene.Scene;
 import javafx.stage.DirectoryChooser;
 import javafx.stage.FileChooser;
@@ -10,6 +11,7 @@ import java.net.URL;
 import java.nio.channels.Channels;
 import java.nio.channels.ReadableByteChannel;
 import java.nio.charset.Charset;
+import java.util.List;
 
 public class Helper {
 
@@ -29,6 +31,55 @@ public class Helper {
     public static final String[] dividers = {
             DIV1, DIV2,
     };
+
+    public static void importFb2(List<Section> sections1, List<Section> sections2, File directory) {
+        try {
+            write(sections1, sections2, directory);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    public static void write(List<Section> sections1, List<Section> sections2, File directory) throws IOException {
+        for (int i = 0; i < sections1.size(); i++) {
+            Section section1 = sections1.get(i);
+            Section section2 = sections2.get(i);
+            File book = new File(directory + "/" + (i + 1) + "# " + section1.getTitleString(". "));
+            book.mkdirs();
+            if (!section1.getSections().isEmpty()) {
+                write(section1.getSections(), section2.getSections(), book);
+            } else {
+                StringBuilder stringBuilder1 = new StringBuilder();
+                StringBuilder stringBuilder2 = new StringBuilder();
+                if (i < sections1.size()) {
+                    section1.getParagraphs().stream().filter(p -> p.getP() != null)
+                            .forEach(p -> stringBuilder1.append(p.getP()).append("\n\n"));
+                }
+                if (i < sections2.size()) {
+                    section2.getParagraphs().stream().filter(p -> p.getP() != null)
+                            .forEach(p -> stringBuilder2.append(p.getP()).append("\n\n"));
+                }
+                FileWriter fileWriter1 = new FileWriter(new File(book, "1.txt"));
+                FileWriter fileWriter2 = new FileWriter(new File(book, "2.txt"));
+                fileWriter1.append(stringBuilder1);
+                fileWriter2.append(stringBuilder2);
+                fileWriter1.flush();
+                fileWriter2.flush();
+                fileWriter1.close();
+                fileWriter2.close();
+            }
+        }
+    }
+
+    public static void process(List<Section> bookSections, List<Section> allSections) {
+        for (Section section : bookSections) {
+            if (section.getSections().isEmpty()) {
+                if (!section.getParagraphs().isEmpty()) allSections.add(section);
+            } else {
+                process(section.getSections(), allSections);
+            }
+        }
+    }
 
     public static void update() {
         new Thread(() -> {

@@ -63,7 +63,7 @@ public class MailSender extends Authenticator {
 
     @Override
     public PasswordAuthentication getPasswordAuthentication() {
-        return new PasswordAuthentication("kursx.noreply@gmail.com", "kursxnoreply");
+        return new PasswordAuthentication("kursx.noreply@gmail.com", "kursx_noreply");
     }
 
     private Properties _setProperties() {

@@ -1,6 +1,5 @@
 package parallator;
 
-import com.kursx.parser.fb2.Section;
 import javafx.application.Application;
 import javafx.application.Platform;
 import javafx.fxml.FXMLLoader;
@@ -8,15 +7,15 @@ import javafx.scene.Parent;
 import javafx.scene.Scene;
 import javafx.scene.control.*;
 import javafx.scene.input.KeyCombination;
+import javafx.scene.input.KeyEvent;
 import javafx.scene.layout.VBox;
 import javafx.stage.Stage;
-import parallator.controller.DialogController;
+import parallator.controller.BookDialogController;
+import parallator.controller.Fb2DialogController;
 import parallator.controller.MainController;
 
 import java.io.File;
-import java.io.FileWriter;
 import java.io.IOException;
-import java.util.List;
 import java.util.Optional;
 
 public class Main extends Application {
@@ -28,7 +27,7 @@ public class Main extends Application {
         MainConfig mainConfig = MainConfig.getMainConfig();
 
         FXMLLoader loader = new FXMLLoader(getClass().getResource("/resources/layouts/main.fxml"));
-        FXMLLoader dialogLoader = new FXMLLoader(getClass().getResource("/resources/layouts/book_dialog.fxml"));
+        FXMLLoader dialogLoader = new FXMLLoader(getClass().getResource("/resources/layouts/dialog_book.fxml"));
 
         Parent root = loader.load();
         Parent dialogRoot = dialogLoader.load();
@@ -39,7 +38,8 @@ public class Main extends Application {
         rootStage.setTitle("Parallator");
 
         rootController = loader.getController();
-        DialogController dialogController = dialogLoader.getController();
+        rootController.setStage(rootStage);
+        BookDialogController dialogController = dialogLoader.getController();
 
         rootStage.setScene(rootScene);
 
@@ -53,6 +53,7 @@ public class Main extends Application {
         Menu last = new Menu("Последние книги");
 
         MenuItem info = new MenuItem("Описание");
+        MenuItem fb2 = new MenuItem("Импорт из Fb2");
         MenuItem open = new MenuItem("Открыть");
         open.setAccelerator(KeyCombination.keyCombination("Ctrl+O"));
         MenuItem save = new MenuItem("Сохранить");
@@ -99,6 +100,22 @@ public class Main extends Application {
             });
         }
 
+        fb2.setOnAction(event -> {
+            try {
+                FXMLLoader fb2Loader = new FXMLLoader(getClass().getResource("/resources/layouts/dialog_fb2.fxml"));
+                Parent parent = fb2Loader.load();
+                Scene scene = new Scene(parent);
+                Stage stage = new Stage();
+                stage.setScene(scene);
+                stage.setMaximized(true);
+                stage.show();
+                Fb2DialogController controller = fb2Loader.getController();
+                controller.init(stage, rootController);
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        });
+
         info.setOnAction(event -> {
             if (rootController.getFile() == null) return;
             Stage dialogStage = new Stage();
@@ -109,7 +126,7 @@ public class Main extends Application {
             dialogStage.show();
             Platform.runLater(() -> dialogStage.getScene().getRoot().requestFocus());
         });
-        about.setOnAction(event -> Toast.makeText(rootStage, "Parallator v0.6 by KursX \n kursxinc@gmail.com", 5000));
+        about.setOnAction(event -> Toast.makeText(rootStage, "Parallator v0.7 by KursX \n kursxinc@gmail.com", 5000));
         update.setOnAction(event -> Helper.update());
         open.setOnAction(event -> {
             File dir = Helper.showDirectoryChooser(rootScene);
@@ -129,7 +146,7 @@ public class Main extends Application {
 
         file.getItems().addAll(open, save, last, enc1, enc2, divider, refresh);
         help.getItems().addAll(update, about);
-        book.getItems().addAll(info);
+        book.getItems().addAll(info, fb2);
 
         menuBar.getMenus().addAll(file, help, book);
 
@@ -151,6 +168,18 @@ public class Main extends Application {
                 event.consume();
             }
         });
+
+        rootScene.addEventFilter(KeyEvent.KEY_PRESSED, event -> {
+            switch (event.getCode()) {
+                case DOWN:
+                    rootController.down();
+                    break;
+                case UP:
+                    rootController.up();
+                    break;
+            }
+        });
+
         if (mainConfig.path() != null) rootController.open(new File(mainConfig.path()));
     }
 
@@ -161,46 +190,6 @@ public class Main extends Application {
 
 
     public static void main(String[] args) {
-//            try {
-////                FictionBook fictionBook1 = new FictionBook(new File("src/1.fb2"));
-//                FictionBook fictionBook2 = new FictionBook(new File("src/2.fb2"));
-////                List<Section> sections1 = new ArrayList<>();
-//                List<Section> sections2 = new ArrayList<>();
-////                process(fictionBook1.getBody().getSections(), sections1);
-//                process(fictionBook2.getBody().getSections(), sections2);
-//
-////                sections1.remove(0);
-//
-//
-//                sections2.add(new Section());
-////                write(sections1, "/1.txt");
-//                write(sections2, "/2.txt");
-//
-//            } catch (ParserConfigurationException | IOException | SAXException e) {
-//                e.printStackTrace();
-//            }
         launch(args);
-        }
-
-        public static void write(List<Section> sections, String name) throws IOException {
-            for (int i = 0; i < sections.size(); i++) {
-                StringBuilder stringBuilder = new StringBuilder();
-                sections.get(i).getParagraphs().stream().filter(p -> p.getP() != null).forEach(p -> stringBuilder.append(p.getP()).append("\n\n"));
-                new File("src/book/" + (i + 1)).mkdirs();
-                FileWriter fileWriter = new FileWriter(new File("src/book/" + (i + 1) + name));
-                fileWriter.append(stringBuilder);
-                fileWriter.flush();
-                fileWriter.close();
-            }
-        }
-
-        public static void process(List<Section> bookSections, List<Section> allSections) {
-            for (Section section : bookSections) {
-                if (section.getSections().isEmpty()) {
-                    if (!section.getParagraphs().isEmpty()) allSections.add(section);
-                } else {
-                    process(section.getSections(), allSections);
-                }
-            }
-        }
+    }
 }

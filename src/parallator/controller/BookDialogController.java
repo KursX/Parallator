@@ -24,15 +24,15 @@ import java.util.ResourceBundle;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
 
-public class DialogController implements Initializable {
+public class BookDialogController implements Initializable {
 
     private Stage stage;
     private Main main;
+    private List<Chapter> chapters;
     private String thumbnailName = "";
     private ObservableList<String> langs = FXCollections.observableArrayList(
-            "ru", "en", "be", "bg", "cs", "da", "de", "el", "es", "et", "fi", "fr", "it", "lt",
-            "lv",            "nl",            "no",            "pl",            "pt",            "sk",            "sv",
-            "tr",            "tt",            "uk"
+            "ru", "en", "be", "bg", "cs", "da", "de", "el", "es", "et", "fi", "fr",
+            "it", "lt", "lv", "nl", "no", "pl", "pt", "sk", "sv", "tr", "tt", "uk"
     );
 
     public void init(Stage stage, Main main) {
@@ -52,7 +52,11 @@ public class DialogController implements Initializable {
                 thumbnail.setImage(new Image(new File(main.getRootController().getFile(), book.getThumbnail()).toURI().toString()));
             }
         });
-
+        chapters = main.getRootController().validate();
+        if (chapters == null) {
+            send.setDisable(true);
+            Toast.makeText(stage, "Не во всех главах количество русских абзацев совпадает с количеством английских");
+        }
     }
 
     @FXML
@@ -108,7 +112,7 @@ public class DialogController implements Initializable {
         from.setItems(langs);
         to.setItems(langs);
         from.getSelectionModel().select("en");
-        from.getSelectionModel().select("ru");
+        to.getSelectionModel().select("ru");
     }
 
     public boolean save() {
@@ -130,11 +134,6 @@ public class DialogController implements Initializable {
             Toast.makeText(stage, "Неверный email");
             return;
         }
-        if (thumbnailName.isEmpty()) {
-            Toast.makeText(stage, "Загрузите картинку");
-            return;
-        }
-        List<Chapter> chapters = main.getRootController().validate();
         if (chapters != null) {
             Platform.runLater(() -> {
                 send.setDisable(true);
@@ -157,8 +156,6 @@ public class DialogController implements Initializable {
             } catch (Exception e) {
                 e.printStackTrace();
             }
-        } else {
-            Toast.makeText(stage, "Не во всех главах количество русских абзацев совпадает с количеством английских");
         }
     }
 
