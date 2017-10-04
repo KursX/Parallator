@@ -9,7 +9,7 @@ import java.io.IOException;
 public class Config {
 
     public static String CONFIG = ".config";
-    private String enc1 = Helper.UTF_8, enc2 = Helper.UTF_8, divider = Helper.DIV2REG;
+    private String enc1 = Helper.UTF_8, divider = Helper.DIV2REG;
     private String lastChapterPath;
     private Book book;
     public String filePath;
@@ -56,8 +56,14 @@ public class Config {
         save();
     }
 
-    public String getLastChapter() {
-        return lastChapterPath;
+    public File getLastChapter() {
+        if (lastChapterPath == null) return null;
+        File file = new File(lastChapterPath);
+        if (file.exists()) {
+            return file;
+        }
+        setLastChapter(lastChapterPath);
+        return null;
     }
 
     public String enc1() {
@@ -69,17 +75,12 @@ public class Config {
         save();
     }
 
-    public String enc2() {
-        return enc2;
-    }
-
-    public void setEnc2(String enc2) {
-        this.enc2 = enc2;
-        save();
+    public String dividerRegex() {
+        return divider;
     }
 
     public String divider() {
-        return divider;
+        return divider.replace(".", "").replace("*", "").replace(" ", "").replace("\\n", ((char) 10) + "");
     }
 
     public void setDivider(String divider) {

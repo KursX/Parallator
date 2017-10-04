@@ -11,33 +11,29 @@ import javafx.scene.text.Text;
 import javafx.stage.Stage;
 import javafx.util.Callback;
 import parallator.MainConfig;
-import parallator.Paragraph;
 import parallator.controller.EditDialogController;
 import parallator.controller.MainController;
 
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Optional;
+import java.util.*;
 
-public class ParagraphCellFactory implements Callback<TableColumn<Paragraph, String>, TableCell<Paragraph, String>> {
+public class ParagraphCellFactory implements Callback<TableColumn<Map<String, String>, String>, TableCell<Map<String, String>, String>> {
 
     private MainController controller;
-    private boolean en;
+    private String key;
     private ContextMenu contextMenu;
     private static final String dividersRegex = "(\\.”|\\.\"|\\.|!|\\?|\\.{3}|…)";
 
-    public ParagraphCellFactory(MainController controller, boolean left) {
+    public ParagraphCellFactory(MainController controller, String key) {
         this.controller = controller;
-        this.en = left;
+        this.key = key;
     }
 
-    public TableCell<Paragraph, String> call(final TableColumn<Paragraph, String> param) {
-        TableCell<Paragraph, String> cell = new TableCell<Paragraph, String>() {
+    public TableCell<Map<String, String>, String> call(final TableColumn<Map<String, String>, String> param) {
+        TableCell<Map<String, String>, String> cell = new TableCell<Map<String, String>, String>() {
             protected void updateItem(String data, boolean empty) {
                 super.updateItem(data, empty);
-                if (!empty) {
+                if (!empty && data != null) {
                     if ((data.length() > 500 || getParts(data).size() > 5) && controller.getConfig().isRed()) {
                         ((Text) getGraphic()).setFill(Color.RED);
                     } else {
@@ -84,7 +80,7 @@ public class ParagraphCellFactory implements Callback<TableColumn<Paragraph, Str
                         String separator = dividers.get(i - 1);
                         String right = parts.get(i).length() > 14 ? parts.get(i).substring(0, 15) : parts.get(i);
                         MenuItem item = new MenuItem(left + "<- " + separator + " ->" + right);
-                        item.setOnAction(event -> controller.separate(cell.getIndex(), en, parts, index, separator));
+                        item.setOnAction(event -> controller.separate(cell.getIndex(), key, parts, index, separator));
                         contextMenu.getItems().add(item);
                     }
                     contextMenu.getItems().add(new SeparatorMenuItem());
@@ -98,21 +94,31 @@ public class ParagraphCellFactory implements Callback<TableColumn<Paragraph, Str
                 MenuItem up = new MenuItem("Переместить вверх");
                 MenuItem delete = new MenuItem("Удалить");
                 MenuItem down = new MenuItem("Переместить вниз");
-                contextMenu.getItems().addAll(up, delete, down);
+                MenuItem nextChapter = new MenuItem("Переместить в следующую главу");
+                contextMenu.getItems().addAll(up, delete, down, nextChapter);
+                nextChapter.setOnAction(event -> {
+                    new Thread(new Runnable() {
+                        @Override
+                        public void run() {
+
+                            controller.nextChapter(cell.getIndex(), key);
+                        }
+                    }).start();
+                });
                 delete.setOnAction(event -> {
                     Alert alert = new Alert(Alert.AlertType.WARNING);
                     alert.setHeaderText("Удалить абзац?");
                     alert.getButtonTypes().setAll(ButtonType.OK, ButtonType.CANCEL);
                     Optional<ButtonType> result = alert.showAndWait();
                     if (result.isPresent() && result.get() == ButtonType.OK) {
-                        controller.remove(cell.getIndex(), en);
+                        controller.remove(cell.getIndex(), key);
                     }
                 });
                 up.setOnAction(event -> {
-                    controller.down(cell.getIndex(), en);
+                    controller.down(cell.getIndex(), key);
                 });
                 down.setOnAction(event -> {
-                    controller.up(cell.getIndex(), en);
+                    controller.up(cell.getIndex(), key);
                 });
             }
             contextMenu.show(cell, t.getScreenX(), t.getScreenY());
@@ -129,7 +135,7 @@ public class ParagraphCellFactory implements Callback<TableColumn<Paragraph, Str
             dialogStage.setScene(dialogScene);
             EditDialogController dialogController = loader.getController();
             dialogController.init(dialogStage, () -> {
-                controller.update(index, en, dialogController.getText());
+                controller.update(index, key, dialogController.getText());
                 dialogController.close();
             });
             dialogController.setText(data);

@@ -1,18 +1,15 @@
 package parallator.controller;
 
 import com.google.gson.Gson;
+import com.kursx.parser.fb2.Element;
 import com.kursx.parser.fb2.FictionBook;
-import com.kursx.parser.fb2.P;
 import com.kursx.parser.fb2.Section;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
 import javafx.fxml.Initializable;
 import javafx.geometry.Pos;
 import javafx.scene.Scene;
-import javafx.scene.control.Button;
-import javafx.scene.control.ContextMenu;
-import javafx.scene.control.Label;
-import javafx.scene.control.MenuItem;
+import javafx.scene.control.*;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.scene.input.MouseButton;
@@ -48,13 +45,19 @@ public class Fb2DialogController implements Initializable {
     }
 
     @FXML
+    private Label pathLabel;
+
+    @FXML
+    ComboBox<String> fromL, toL;
+
+    @FXML
     VBox fromBox, toBox;
 
     @FXML
     Button from, to, path, load;
 
     private Section getNextSubSection(Section section) {
-        if (!section.getParagraphs().isEmpty()) {
+        if (!section.getElements().isEmpty()) {
             return section;
         } else if (!section.getSections().isEmpty()){
             return getNextSubSection(section.getSections().get(0));
@@ -101,7 +104,7 @@ public class Fb2DialogController implements Initializable {
                 if (nextSection != null) {
                     MenuItem up = new MenuItem("В начало следующей главы");
                     up.setOnAction(event1 -> {
-                        nextSection.getParagraphs().addAll(sections.get(pos).getParagraphs());
+                        nextSection.getElements().addAll(sections.get(pos).getElements());
                         sections.remove(section);
                         refresh(box, rootSections, left);
                     });
@@ -119,8 +122,8 @@ public class Fb2DialogController implements Initializable {
             }
             label.setOnMouseClicked(event -> {
                 if (event.getButton() == MouseButton.PRIMARY) {
-                    if (!section.getParagraphs().isEmpty()) {
-                        String text =  getText(section.getParagraphs());
+                    if (!section.getElements().isEmpty()) {
+                        String text = Element.getText(section.getElements(), "\n");
                         if (!text.isEmpty()) {
                             try {
                                 FXMLLoader loader = new FXMLLoader(getClass().getResource("/resources/layouts/dialog_text.fxml"));
@@ -153,14 +156,6 @@ public class Fb2DialogController implements Initializable {
         }
     }
 
-    public String getText(List<P> ps) {
-        String value = "";
-        for (P p : ps) {
-            value += p.getP() + "\n";
-        }
-        return value.substring(0, value.length() - "\n".length());
-    }
-
     private void refresh(VBox box, List<Section> sections, boolean left) {
         box.getChildren().clear();
         feel(sections, sections, "", box, left);
@@ -180,6 +175,10 @@ public class Fb2DialogController implements Initializable {
 
     @Override
     public void initialize(URL location, ResourceBundle resources) {
+        fromL.setItems(BookDialogController.langs);
+        toL.setItems(BookDialogController.langs);
+        fromL.getSelectionModel().select("en");
+        toL.getSelectionModel().select("ru");
         from.setOnMouseClicked(event -> {
             file1 = Helper.showFileChooser(stage.getScene(), new FileChooser.ExtensionFilter("fb2", "*.fb2"));
             if (file1 == null) return;
@@ -198,7 +197,7 @@ public class Fb2DialogController implements Initializable {
                     getInputArguments().toString().indexOf("-agentlib:jdwp") > 0){
                 Book book = new Gson().fromJson(Helper.getTextFromFile(file2, Helper.UTF_8), Book.class);
                 try {
-                    Helper.write(book.getChapters(), false, file3);
+                    Helper.write(book.getChapters(), toL.getValue(), file3);
                 } catch (IOException e) {
                     e.printStackTrace();
                 }
@@ -206,25 +205,23 @@ public class Fb2DialogController implements Initializable {
         });
         path.setOnAction(event -> {
             file3 = Helper.showDirectoryChooser(stage.getScene());
+            pathLabel.setText(file3.getAbsolutePath());
         });
         load.setOnAction(event -> {
-            if (file1 == null) {
-                Toast.makeText(stage, "Не выбран исходник");
-                return;
-            }
-            if (file2 == null) {
-                Toast.makeText(stage, "Не выбран перевод");
+            if (file1 == null && file2 == null) {
+                Toast.makeText(stage, "Не выбран файл");
                 return;
             }
             if (file3 == null) {
                 Toast.makeText(stage, "Не выбран путь для импорта");
                 return;
             }
-            if (leftCount != rightCount) {
+            if (leftCount != 0 && rightCount != 0 && leftCount != rightCount) {
                 Toast.makeText(stage, "Количество глав не совпадает");
                 return;
             }
-            Helper.importFb2(sections1, sections2, file3);
+            if (file1 != null) Helper.importFb2(sections1, file3, fromL.getValue());
+            if (file2 != null) Helper.importFb2(sections2, file3, toL.getValue());
             controller.open(file3);
             stage.hide();
             MainConfig.getMainConfig().setBookPath(file3.getAbsolutePath());
@@ -234,11 +231,11 @@ public class Fb2DialogController implements Initializable {
     private void unite(Section section, VBox box, List<Section> sections, HBox hbox, boolean left) {
         Button unite = new Button("Объединить");
         unite.setOnMouseClicked(event -> {
-            List<P> paragraphs = new ArrayList<>();
+            List<Element> paragraphs = new ArrayList<>();
             for (Section sub : section.getSections()) {
-                paragraphs.addAll(sub.getParagraphs());
+                paragraphs.addAll(sub.getElements());
             }
-            section.setParagraphs(paragraphs);
+            section.setElements(paragraphs);
             section.setSections(new ArrayList<>());
             refresh(box, sections, left);
         });
