@@ -2,16 +2,17 @@ package parallator;
 
 
 import java.util.List;
+import java.util.Map;
 
 public class Chapter {
 
     public String hash;
     public String chapterName;
     String chapterDescription;
-    List<Paragraph> paragraphs;
+    List<Map<String, String>> paragraphs;
     List<Chapter> chapters;
 
-    public Chapter(String chapterName, String chapterDescription, List<Paragraph> paragraphs) {
+    public Chapter(String chapterName, String chapterDescription, List<Map<String, String>> paragraphs) {
         this.chapterName = chapterName;
         this.paragraphs = paragraphs;
         this.chapterDescription = chapterDescription;

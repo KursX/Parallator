@@ -21,48 +21,101 @@ import java.util.Optional;
 public class Main extends Application {
 
     private MainController rootController;
+    private Menu langs;
+    private static Main main;
+
+    public static Main getMain() {
+        return main;
+    }
 
     @Override
     public void start(Stage rootStage) throws Exception {
-        MainConfig mainConfig = MainConfig.getMainConfig();
+        rootStage.setMaximized(true);
+        main = this;
 
         FXMLLoader loader = new FXMLLoader(getClass().getResource("/resources/layouts/main.fxml"));
-        FXMLLoader dialogLoader = new FXMLLoader(getClass().getResource("/resources/layouts/dialog_book.fxml"));
 
         Parent root = loader.load();
-        Parent dialogRoot = dialogLoader.load();
 
-        Scene dialogScene = new Scene(dialogRoot);
         Scene rootScene = new Scene(root);
 
         rootStage.setTitle("Parallator");
 
         rootController = loader.getController();
-        BookDialogController dialogController = dialogLoader.getController();
 
         rootStage.setScene(rootScene);
 
+        initMenu(rootStage);
+
+        rootStage.show();
+        rootStage.setOnCloseRequest(event -> {
+            if (rootController.getFile() == null || !rootController.isEdited()) return;
+            Alert alert = new Alert(Alert.AlertType.WARNING);
+            alert.setHeaderText("Сохранить перед выходом?");
+            alert.getButtonTypes().setAll(ButtonType.YES, ButtonType.NO, ButtonType.CANCEL);
+            Optional<ButtonType> result = alert.showAndWait();
+            if (result.isPresent() && result.get() == ButtonType.YES) {
+                rootController.save();
+            }
+            if (result.isPresent() && result.get() == ButtonType.CANCEL) {
+                event.consume();
+            }
+        });
+
+        rootScene.addEventFilter(KeyEvent.KEY_PRESSED, event -> {
+            switch (event.getCode()) {
+                case DOWN:
+                    rootController.down();
+                    break;
+                case UP:
+                    rootController.up();
+                    break;
+            }
+        });
+
+        if (MainConfig.getMainConfig().path() != null) rootController.open(new File(MainConfig.getMainConfig().path()));
+    }
+
+    public void initMenu(Stage rootStage) throws IOException {
+        MainConfig mainConfig = MainConfig.getMainConfig();
+        FXMLLoader dialogLoader = new FXMLLoader(getClass().getResource("/resources/layouts/dialog_book.fxml"));
+        Parent dialogRoot = dialogLoader.load();
+        Scene dialogScene = new Scene(dialogRoot);
+        BookDialogController dialogController = dialogLoader.getController();
         MenuBar menuBar = new MenuBar();
         Menu file = new Menu("Файл");
         Menu book = new Menu("Книга");
+        Menu imp = new Menu("Импорт");
+        Menu exp = new Menu("Экспорт");
         Menu view = new Menu("Вид");
         Menu font = new Menu("Размер текста");
         Menu help = new Menu("Помощь");
-        Menu enc1 = new Menu("Кодировка исходника");
-        Menu enc2 = new Menu("Кодировка перевода");
+        Menu enc1 = new Menu("Кодировка");
         Menu divider = new Menu("Разделитель абзацев");
         Menu last = new Menu("Последние книги");
+        langs = new Menu("Языки");
 
         MenuItem info = new MenuItem("Описание");
-        MenuItem fb2 = new MenuItem("Импорт из Fb2");
+        MenuItem fb2 = new MenuItem("FB2");
+        MenuItem csv = new MenuItem("CSV");
+        MenuItem html = new MenuItem("HTML");
         MenuItem open = new MenuItem("Открыть");
-        open.setAccelerator(KeyCombination.keyCombination("Ctrl+O"));
         MenuItem save = new MenuItem("Сохранить");
-        save.setAccelerator(KeyCombination.keyCombination("Ctrl+S"));
+        MenuItem undo = new MenuItem("Отменить");
         MenuItem about = new MenuItem("О Программе");
         MenuItem update = new MenuItem("Обновить программу");
         MenuItem refresh = new MenuItem("Обновить текст");
+
+        open.setAccelerator(KeyCombination.keyCombination("Ctrl+O"));
+        save.setAccelerator(KeyCombination.keyCombination("Ctrl+S"));
+        undo.setAccelerator(KeyCombination.keyCombination("Ctrl+Z"));
         refresh.setAccelerator(KeyCombination.keyCombination("Ctrl+R"));
+
+        undo.setOnAction(event -> rootController.undo());
+        about.setOnAction(event -> Toast.makeText(rootStage, "Parallator v0.8 by KursX \n kursxinc@gmail.com", 5000));
+        update.setOnAction(event -> Helper.update());
+        csv.setOnAction(event -> Helper.csv(rootStage.getScene(), rootController.getTextMap(), rootController.getFile()));
+        html.setOnAction(event -> Helper.html(rootStage.getScene(), rootController.getTextMap(), rootController.getFile()));
 
         mainConfig.getPathes().stream().filter(path -> new File(path).exists()).forEach(path -> {
             MenuItem item = new MenuItem(path);
@@ -75,17 +128,10 @@ public class Main extends Application {
 
         for (String charset : Helper.charsets) {
             MenuItem e1 = new MenuItem(charset);
-            MenuItem e2 = new MenuItem(charset);
             enc1.getItems().add(e1);
-            enc2.getItems().add(e2);
             e1.setOnAction(event -> {
                 if (rootController.getFile() == null) return;
                 Config.getConfig(rootController.getFile()).setEnc1(e1.getText());
-                rootController.showChapter();
-            });
-            e2.setOnAction(event -> {
-                if (rootController.getFile() == null) return;
-                Config.getConfig(rootController.getFile()).setEnc2(e2.getText());
                 rootController.showChapter();
             });
         }
@@ -100,6 +146,7 @@ public class Main extends Application {
                 rootController.showChapter();
             });
         }
+
 
         fb2.setOnAction(event -> {
             try {
@@ -127,10 +174,8 @@ public class Main extends Application {
             dialogStage.show();
             Platform.runLater(() -> dialogStage.getScene().getRoot().requestFocus());
         });
-        about.setOnAction(event -> Toast.makeText(rootStage, "Parallator v0.7 by KursX \n kursxinc@gmail.com", 5000));
-        update.setOnAction(event -> Helper.update());
         open.setOnAction(event -> {
-            File dir = Helper.showDirectoryChooser(rootScene);
+            File dir = Helper.showDirectoryChooser(rootStage.getScene());
             if (dir != null) {
                 mainConfig.setBookPath(dir.getAbsolutePath());
                 rootController.open(dir);
@@ -145,14 +190,14 @@ public class Main extends Application {
             rootController.showChapter();
         });
 
-        for (int fontSize = 15; fontSize <= 30; fontSize++) {
+        for (int fontSize = 5; fontSize <= 30; fontSize++) {
             final CheckMenuItem item = new CheckMenuItem(fontSize + "");
             if (mainConfig.getFontSize() == fontSize) {
                 item.setSelected(true);
             }
             final int finalValue = fontSize;
             item.setOnAction(event -> {
-                ((CheckMenuItem) font.getItems().get(mainConfig.getFontSize() - 15)).setSelected(false);
+                ((CheckMenuItem) font.getItems().get(mainConfig.getFontSize() - 5)).setSelected(false);
                 mainConfig.setFontSize(finalValue);
                 item.setSelected(true);
                 rootController.redraw();
@@ -160,51 +205,26 @@ public class Main extends Application {
             font.getItems().addAll(item);
         }
 
-        file.getItems().addAll(open, save, last, enc1, enc2, divider, refresh);
+        imp.getItems().addAll(fb2);
+        exp.getItems().addAll(csv, html);
+        file.getItems().addAll(undo, open, save, refresh, last, enc1, divider);
         help.getItems().addAll(update, about);
-        book.getItems().addAll(info, fb2);
-        view.getItems().addAll(font);
+        book.getItems().addAll(imp, exp, info);
+        view.getItems().addAll(font, langs);
 
         menuBar.getMenus().addAll(file, book, help, view);
 
 
-        ((VBox) rootScene.getRoot()).getChildren().add(0, menuBar);
-
-        rootStage.setMaximized(true);
-        rootStage.show();
-        rootStage.setOnCloseRequest(event -> {
-            if (rootController.getFile() == null || !rootController.isEdited()) return;
-            Alert alert = new Alert(Alert.AlertType.WARNING);
-            alert.setHeaderText("Сохранить перед выходом?");
-            alert.getButtonTypes().setAll(ButtonType.YES, ButtonType.NO, ButtonType.CANCEL);
-            Optional<ButtonType> result = alert.showAndWait();
-            if (result.isPresent() && result.get() == ButtonType.YES) {
-                rootController.save();
-            }
-            if (result.isPresent() && result.get() == ButtonType.CANCEL) {
-                event.consume();
-            }
-        });
-
-        rootScene.addEventFilter(KeyEvent.KEY_PRESSED, event -> {
-            switch (event.getCode()) {
-                case DOWN:
-                    rootController.down();
-                    break;
-                case UP:
-                    rootController.up();
-                    break;
-            }
-        });
-
-        if (mainConfig.path() != null) rootController.open(new File(mainConfig.path()));
+        ((VBox) rootStage.getScene().getRoot()).getChildren().add(0, menuBar);
     }
 
     public MainController getRootController() {
         return rootController;
     }
 
-
+    public Menu getLangs() {
+        return langs;
+    }
 
     public static void main(String[] args) {
         launch(args);

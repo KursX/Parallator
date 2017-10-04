@@ -31,7 +31,7 @@ public class BookDialogController implements Initializable {
     private Main main;
     private List<Chapter> chapters;
     private String thumbnailName = "";
-    private ObservableList<String> langs = FXCollections.observableArrayList(
+    public static final ObservableList<String> langs = FXCollections.observableArrayList(
             "ru", "en", "be", "bg", "cs", "da", "de", "el", "es", "et", "fi", "fr",
             "it", "lt", "lv", "nl", "no", "pl", "pt", "sk", "sv", "tr", "tt", "uk"
     );
@@ -78,7 +78,11 @@ public class BookDialogController implements Initializable {
     public void initialize(URL location, ResourceBundle resources) {
         send.setOnAction(event -> new Thread(this::send).start());
         save.setOnAction(event -> {
-            save();
+            try {
+                save();
+            } catch (FileNotFoundException e) {
+                e.printStackTrace();
+            }
             stage.close();
         });
         cancel.setOnAction(event -> stage.close());
@@ -116,7 +120,7 @@ public class BookDialogController implements Initializable {
         to.getSelectionModel().select("ru");
     }
 
-    public boolean save() {
+    public boolean save() throws FileNotFoundException {
         for (TextField field : fields) {
             if (field.getText().isEmpty()) {
                 Toast.makeText(stage, "Не все поля заполнены");
@@ -126,11 +130,19 @@ public class BookDialogController implements Initializable {
         Book book = getBook();
         Config config = main.getRootController().getConfig();
         config.setBook(book);
+        PrintWriter printWriter = new PrintWriter(new File(main.getRootController().getFile(), "book.json"));
+        printWriter.print(new Gson().toJson(getBook(chapters)));
+        printWriter.flush();
+        printWriter.close();
         return true;
     }
 
     public void send() {
-        if (!save()) return;
+        try {
+            if (!save()) return;
+        } catch (FileNotFoundException e) {
+            e.printStackTrace();
+        }
         if (!mail.getText().matches("^[-a-z0-9!#$%&'*+/=?^_`{|}~]+(?:\\.[-a-z0-9!#$%&'*+/=?^_`{|}~]+)*@(?:[a-z0-9]([-a-z0-9]{0,61}[a-z0-9])?\\.)*(?:aero|arpa|asia|biz|cat|com|coop|edu|gov|info|int|jobs|mil|mobi|museum|name|net|org|pro|tel|travel|[a-z][a-z])$")) {
             Toast.makeText(stage, "Неверный email");
             return;
@@ -143,10 +155,6 @@ public class BookDialogController implements Initializable {
                 cancel.setText("Ждите");
             });
             try {
-                PrintWriter printWriter = new PrintWriter(new File(main.getRootController().getFile(), "book.json"));
-                printWriter.print(new Gson().toJson(getBook(chapters)));
-                printWriter.flush();
-                printWriter.close();
                 File zip = new File(main.getRootController().getFile().getParentFile(), "book.zip");
                 if (zip.exists()) zip.delete();
                 pack(main.getRootController().getFile().getAbsolutePath(), zip.getAbsolutePath());

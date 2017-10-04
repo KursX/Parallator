@@ -30,7 +30,11 @@ public class MainConfig {
 
     public String path() {
         if (pathes == null) return null;
-        pathes.stream().filter(file -> !new File(file).exists()).forEachOrdered(file -> pathes.remove(file));
+        for (String path : pathes) {
+            if (!new File(path).exists()) {
+                pathes.remove(new File(path));
+            }
+        }
         if (pathes.isEmpty()) return null;
         return pathes.get(0);
     }

@@ -7,6 +7,7 @@ import javafx.scene.control.*;
 import javafx.scene.input.MouseButton;
 import javafx.stage.Stage;
 import javafx.util.Callback;
+
 import parallator.Config;
 import parallator.controller.EditDialogController;
 import parallator.controller.MainController;
@@ -39,8 +40,10 @@ public class ChapterCellFactory implements Callback<TreeView<File>, TreeCell<Fil
         rootItem.setExpanded(true);
         rootItem.getChildren().addAll(getItems(file));
         chapters.setRoot(rootItem);
-        String lastChapter = controller.getConfig().getLastChapter();
-        if (lastChapter != null) controller.showChapter(new File(lastChapter));
+        File lastChapter = controller.getConfig().getLastChapter();
+        if (lastChapter != null) {
+            controller.showChapter(lastChapter);
+        }
         if (selected != null) {
             int index = chapters.getRow(selected);
             chapters.getSelectionModel().select(index);
@@ -59,7 +62,7 @@ public class ChapterCellFactory implements Callback<TreeView<File>, TreeCell<Fil
                     item.getChildren().addAll(getItems(subFile));
                     items.add(item);
                     if (config.getLastChapter() != null) {
-                        if (subFile.getAbsolutePath().equals(config.getLastChapter())) {
+                        if (subFile.getAbsolutePath().equals(config.getLastChapter().getAbsolutePath())) {
                             selected = item;
                         }
                     }
@@ -171,16 +174,12 @@ public class ChapterCellFactory implements Callback<TreeView<File>, TreeCell<Fil
         if (file.isDirectory()) {
             File[] files = file.listFiles();
             if (files != null) {
-            List<File> list = Arrays.asList(files);
-                int count = 0;
+                List<File> list = Arrays.asList(files);
                 for (File subFile : list) {
-                    if (subFile.getName().equals("1.txt")) {
-                        count++;
-                    } else if (subFile.getName().equals("2.txt")) {
-                        count++;
+                    if (subFile.getName().matches("^.*.txt$")) {
+                        return true;
                     }
                 }
-                return count == 2;
             }
         }
         return false;
