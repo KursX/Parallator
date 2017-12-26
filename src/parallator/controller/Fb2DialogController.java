@@ -1,9 +1,12 @@
 package parallator.controller;
 
 import com.google.gson.Gson;
+import com.kursx.parser.fb2.Binary;
 import com.kursx.parser.fb2.Element;
 import com.kursx.parser.fb2.FictionBook;
 import com.kursx.parser.fb2.Section;
+import com.sun.org.apache.xml.internal.security.utils.Base64;
+import com.sun.xml.internal.messaging.saaj.util.ByteInputStream;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
 import javafx.fxml.Initializable;
@@ -23,6 +26,7 @@ import parallator.MainConfig;
 import parallator.Toast;
 
 import java.io.File;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.net.URL;
 import java.util.ArrayList;
@@ -166,6 +170,18 @@ public class Fb2DialogController implements Initializable {
             FictionBook fictionBook = new FictionBook(file);
             List<Section> sections = fictionBook.getBody().getSections();
             feel(sections, sections, "", box, left);
+            for (Binary binary : fictionBook.getBinaries().values()) {
+                byte[] b = Base64.decode(binary.getBinary());
+                ByteInputStream is = new ByteInputStream(b, b.length);
+                FileOutputStream outStream = new FileOutputStream(new File("/home/kurs/git/DictionaryParser/src/books/encryption/sb", binary.getId()));
+                int length;
+                byte[] buffer = new byte[1024];
+                while ((length = is.read(buffer)) != -1) {
+                    outStream.write(buffer, 0, length);
+                }
+                is.close();
+                outStream.close();
+            }
             return sections;
         } catch (Exception e) {
             e.printStackTrace();
@@ -197,7 +213,7 @@ public class Fb2DialogController implements Initializable {
                     getInputArguments().toString().indexOf("-agentlib:jdwp") > 0){
                 Book book = new Gson().fromJson(Helper.getTextFromFile(file2, Helper.UTF_8), Book.class);
                 try {
-                    Helper.write(book.getChapters(), toL.getValue(), file3);
+                    Helper.write(book.getChapters(), file3);
                 } catch (IOException e) {
                     e.printStackTrace();
                 }
@@ -216,8 +232,8 @@ public class Fb2DialogController implements Initializable {
                 Toast.makeText(stage, "Не выбран путь для импорта");
                 return;
             }
-            if (leftCount != 0 && rightCount != 0 && leftCount != rightCount) {
-                Toast.makeText(stage, "Количество глав не совпадает");
+            if (leftCount == 0 || rightCount == 0) {
+                Toast.makeText(stage, "Нет глав");
                 return;
             }
             if (file1 != null) Helper.importFb2(sections1, file3, fromL.getValue());

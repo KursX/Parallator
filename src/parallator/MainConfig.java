@@ -12,6 +12,7 @@ public class MainConfig {
 
     private List<String> pathes = new ArrayList<>();
     private int fontSize = 15;
+    public final ArrayList<String> dividers = new ArrayList<>();
 
     public MainConfig() {
     }

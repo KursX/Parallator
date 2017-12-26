@@ -53,22 +53,21 @@ public class MainController implements Initializable {
         new Thread(() -> {
             if (!init) return;
             Config config = getConfig();
-            int enLength = 0, paragraphs = 0, words = 0;
+            int enLength = 0;
             for (File subFile : ChapterCellFactory.getFilesList(file)) {
                 File file = new File(subFile, keys.get(0) + ".txt");
                 if (file.exists()) {
                     String en = Helper.getTextFromFile(file, config.enc1()).trim();
                     enLength += en.length();
-                    paragraphs += en.split(config.dividerRegex()).length;
-                    words += en.split("[ .,:;\"?()!-]").length;
                 }
             }
-            final int enL = enLength, p = paragraphs, w = words;
+            final int enL = enLength;
             float quality[] = getPercent(file);
             Platform.runLater(() -> {
                 MainController.this.statistics.setText(
-                        String.format("Исходник Количество символов: %1$d Параграфов: %2$d Слов: %3$d Оценка разбития: %4$.2f%%",
-                                enL, p, w, (quality[1] - quality[0]) * 100 / quality[1]));
+                        String.format("Доля абзацев подходящего размера: %1$.2f%%",
+                                (quality[1] - quality[0]) * 100 / quality[1]));
+                System.out.println(keys.get(0) + ": " + enL);
             });
         }).start();
     }
@@ -257,6 +256,44 @@ public class MainController implements Initializable {
         show();
     }
 
+    public void separate(int position, String key, String paragraph, List<String> separators) {
+        List<String> list = textMap.get(key);
+        List<String> newParts = new ArrayList<>();
+        String oldLine = textMap.get(key).get(position);
+        int partsCount = paragraph.length() / 300 + 1;
+        List<String> parts = ParagraphCellFactory.getParts(paragraph);
+
+
+        list.remove(position);
+        String part = "";
+        int partSize = parts.size() / partsCount;
+        int partsSize = partSize;
+        for (int i = 0; i < parts.size(); i++) {
+            part += parts.get(i) + (i < separators.size() ? separators.get(i) : "");
+            if (i >= partsSize || i == parts.size() - 1) {
+                newParts.add(part.trim());
+                part = "";
+                partsSize += partSize;
+            }
+        }
+
+        System.out.println(Arrays.toString(newParts.toArray()));
+
+        for (int i = newParts.size() - 1; i >= 0; i--) {
+            list.add(position, newParts.get(i).trim());
+        }
+
+        undo.add(0, number -> {
+            for (int i = newParts.size() - 1; i >= 0; i--) {
+                list.remove(position);
+            }
+            textMap.get(key).set(position, oldLine);
+            return null;
+        });
+        edit();
+        show();
+    }
+
     public void separate(int position, String key, List<String> parts, int index, String divider) {
         List<String> list = textMap.get(key);
         String oldLine = textMap.get(key).get(position);
@@ -374,7 +411,12 @@ public class MainController implements Initializable {
                 if (ChapterCellFactory.isChapter(subFile)) {
                     Map<String, List<String>> paragraphs = new HashMap<>();
                     for (String key : keys) {
-                        String en = Helper.getTextFromFile(new File(subFile, key + ".txt"), config.enc1()).trim();
+                        String en;
+                        if (key.equals("en"))
+                            en = Helper.getTextFromFile(new File(subFile, key + ".txt"), config.enc1()).trim();
+                        else
+                            en = Helper.getTextFromFile(new File(subFile, key + ".txt"), config.enc1()).trim();
+
                         String[] ens = en.split(config.dividerRegex());
                         paragraphs.put(key, new ArrayList<>(Arrays.asList(ens)));
                     }

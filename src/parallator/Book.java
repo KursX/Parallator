@@ -6,10 +6,10 @@ import java.util.List;
 
 public class Book {
 
-    class Lang {
-        String name = "";
-        String lang = "";
-        String author = "";
+    public static class Lang {
+        public String name = "";
+        public String lang = "";
+        public String author = "";
 
         public Lang(String lang, String name,  String author) {
             this.name = name;
@@ -18,42 +18,33 @@ public class Book {
         }
     }
 
-    private String lang = "en";
+    private String direction = "en-ru";
+    private String version = "1.9";
     private String name;
     private String rusName;
     private String author;
-    private String enAuthor;
     private String hash = "";
     private String thumbnail = "";
     private String filename = "";
-    private Lang[] langs;
+    private int size;
+    private List<Lang> langs = new ArrayList<>();
     private List<Chapter> chapters;
 
-    public Book(String name, String rusName, String author,  String authorEn,  String from, String to, List<Chapter> chapters) {
+    public Book(String name, String rusName, String author,  String from, String to, List<Chapter> chapters) {
         this.name = name;
-        this.lang = from + "-" + to;
+        this.direction = from + "-" + to;
         this.rusName = rusName;
         this.chapters = chapters;
         this.author = author;
-        this.enAuthor = authorEn;
-        langs = new Lang[] {
-                new Lang("en", name, authorEn),
-                new Lang("ru", rusName, author),
-                new Lang("de", name, null),
-                new Lang("es", name, null),
-                new Lang("fr", name, null),
-                new Lang("tr", name, null),
-                new Lang("uk", rusName, author),
-                new Lang("bg", rusName, author)
-        };
+        langs.add(new Lang(from, name, author));
         for (String part : name.split(" ")) {
             filename += part.toLowerCase() + "_";
         }
         filename = filename.substring(0, filename.length() - 1) + ".sb";
     }
 
-    public Book(String name, String rusName, String author,  String authorEn,  String from, String to, String thumbnail) {
-        this(name, rusName, author, authorEn, from, to, new ArrayList<>());
+    public Book(String name, String rusName, String author,  String from, String to, String thumbnail) {
+        this(name, rusName, author, from, to, new ArrayList<>());
         this.thumbnail = thumbnail;
     }
 
@@ -62,7 +53,7 @@ public class Book {
     }
 
     public String getLang() {
-        return lang;
+        return direction;
     }
 
     public String getName() {
@@ -89,11 +80,7 @@ public class Book {
         return filename;
     }
 
-    public Lang[] getLangs() {
+    public List<Lang> getLangs() {
         return langs;
-    }
-
-    public String getEnAuthor() {
-        return enAuthor;
     }
 }

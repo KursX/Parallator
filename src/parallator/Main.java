@@ -16,6 +16,7 @@ import parallator.controller.MainController;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.Collections;
 import java.util.Optional;
 
 public class Main extends Application {
@@ -93,6 +94,7 @@ public class Main extends Application {
         Menu enc1 = new Menu("Кодировка");
         Menu divider = new Menu("Разделитель абзацев");
         Menu last = new Menu("Последние книги");
+        Menu dividers = new Menu("Разделители");
         langs = new Menu("Языки");
 
         MenuItem info = new MenuItem("Описание");
@@ -112,10 +114,10 @@ public class Main extends Application {
         refresh.setAccelerator(KeyCombination.keyCombination("Ctrl+R"));
 
         undo.setOnAction(event -> rootController.undo());
-        about.setOnAction(event -> Toast.makeText(rootStage, "Parallator v0.8 by KursX \n kursxinc@gmail.com", 5000));
+        about.setOnAction(event -> Toast.makeText(rootStage, "Parallator v0.9 by KursX \n kursxinc@gmail.com", 5000));
         update.setOnAction(event -> Helper.update());
         csv.setOnAction(event -> Helper.csv(rootStage.getScene(), rootController.getTextMap(), rootController.getFile()));
-        html.setOnAction(event -> Helper.html(rootStage.getScene(), rootController.getTextMap(), rootController.getFile()));
+        html.setOnAction(event -> Helper.html(rootStage.getScene(), rootController));
 
         mainConfig.getPathes().stream().filter(path -> new File(path).exists()).forEach(path -> {
             MenuItem item = new MenuItem(path);
@@ -136,14 +138,35 @@ public class Main extends Application {
             });
         }
 
-        for (int i = 0; i < Helper.dividers.length; i++) {
-            MenuItem item = new MenuItem(Helper.dividers[i]);
+        for (int i = 0; i < Helper.PARAGRAPH_DIVIDERS.length; i++) {
+            MenuItem item = new MenuItem(Helper.PARAGRAPH_DIVIDERS[i]);
             divider.getItems().add(item);
             final int index = i;
             item.setOnAction(event -> {
                 if (rootController.getFile() == null) return;
                 Config.getConfig(rootController.getFile()).setDivider(Helper.dividersRegs[index]);
                 rootController.showChapter();
+            });
+        }
+
+        if (mainConfig.dividers.isEmpty()) {
+            Collections.addAll(mainConfig.dividers, "\\.", "!", "\\?", "…");
+            mainConfig.save();
+        }
+        for (int index = 0; index < Helper.DIVIDERS.length; index++) {
+            String div = Helper.DIVIDERS[index];
+            final CheckMenuItem item = new CheckMenuItem((div.equals("\n") ? "Перенос строки" : div).replace("\\", ""));
+            if (mainConfig.dividers.contains(div)) {
+                item.setSelected(true);
+            }
+            dividers.getItems().add(item);
+            item.setOnAction(event -> {
+                if (item.isSelected()) {
+                    mainConfig.dividers.add(div);
+                } else {
+                    mainConfig.dividers.remove(div);
+                }
+                mainConfig.save();
             });
         }
 
@@ -175,10 +198,10 @@ public class Main extends Application {
             Platform.runLater(() -> dialogStage.getScene().getRoot().requestFocus());
         });
         open.setOnAction(event -> {
-            File dir = Helper.showDirectoryChooser(rootStage.getScene());
-            if (dir != null) {
-                mainConfig.setBookPath(dir.getAbsolutePath());
-                rootController.open(dir);
+            File bookFile = Helper.showDirectoryChooser(rootStage.getScene());
+            if (bookFile != null) {
+                mainConfig.setBookPath(bookFile.getAbsolutePath());
+                rootController.open(bookFile);
             }
         });
         save.setOnAction(event -> {
@@ -210,7 +233,7 @@ public class Main extends Application {
         file.getItems().addAll(undo, open, save, refresh, last, enc1, divider);
         help.getItems().addAll(update, about);
         book.getItems().addAll(imp, exp, info);
-        view.getItems().addAll(font, langs);
+        view.getItems().addAll(font, langs, dividers);
 
         menuBar.getMenus().addAll(file, book, help, view);
 

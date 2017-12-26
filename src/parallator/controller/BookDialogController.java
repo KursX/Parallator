@@ -11,6 +11,7 @@ import javafx.scene.control.ComboBox;
 import javafx.scene.control.TextField;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
+import javafx.scene.layout.VBox;
 import javafx.stage.FileChooser;
 import javafx.stage.Stage;
 import parallator.*;
@@ -20,6 +21,7 @@ import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.ResourceBundle;
 import java.util.zip.ZipEntry;
@@ -47,10 +49,19 @@ public class BookDialogController implements Initializable {
                 to.getSelectionModel().select(book.getLang().split("-")[1]);
                 fromField.setText(book.getName());
                 toField.setText(book.getRusName());
-                fromAuthor.setText(book.getEnAuthor());
-                toAuthor.setText(book.getAuthor());
+                fromAuthor.setText(book.getAuthor());
                 thumbnail.setVisible(true);
                 thumbnail.setImage(new Image(new File(main.getRootController().getFile(), book.getThumbnail()).toURI().toString()));
+
+                for (Book.Lang lang : book.getLangs()) {
+                     for (LangItem field : langItems) {
+                        if (field.getLang().lang.equals(lang.lang)) {
+                            field.author.setText(lang.author);
+                            field.name.setText(lang.name);
+                            break;
+                        }
+                    }
+                }
             }
         });
         chapters = main.getRootController().validate();
@@ -64,18 +75,32 @@ public class BookDialogController implements Initializable {
     ImageView thumbnail;
 
     @FXML
-    TextField fromField, toField, fromAuthor, toAuthor, mail;
+    TextField fromField, toField, fromAuthor, mail;
 
     @FXML
-    Button send, cancel, save, thumbnailButton;
+    Button send, cancel, save, thumbnailButton, addLang;
 
     @FXML
     ComboBox<String> from, to;
 
+    @FXML
+    VBox langsBox;
+
     private TextField[] fields;
+    private List<LangItem> langItems = new ArrayList<>();
 
     @Override
     public void initialize(URL location, ResourceBundle resources) {
+        langsBox.setSpacing(5);
+        String[] initialLangs = new String[]{
+                "en", "ru", "de", "uk", "bg", "it", "es", "fr", "tr"
+        };
+        for (String initialLang : initialLangs) {
+            LangItem langItem = new LangItem(initialLang);
+            langItem.add(langsBox);
+            langItems.add(langItem);
+        }
+
         send.setOnAction(event -> new Thread(this::send).start());
         save.setOnAction(event -> {
             try {
@@ -85,9 +110,14 @@ public class BookDialogController implements Initializable {
             }
             stage.close();
         });
+        addLang.setOnAction(event -> {
+            LangItem langItem = new LangItem(from.getSelectionModel().getSelectedItem());
+            langItem.add(langsBox);
+            langItems.add(langItem);
+        });
         cancel.setOnAction(event -> stage.close());
         fields = new TextField[]{
-                fromField, toField, fromAuthor, toAuthor
+                fromField, toField, fromAuthor
         };
         thumbnailButton.setOnAction(event -> {
             File file = Helper.showFileChooser(stage.getScene(), new FileChooser.ExtensionFilter("jpg", "*.jpg"));
@@ -124,7 +154,11 @@ public class BookDialogController implements Initializable {
         for (TextField field : fields) {
             if (field.getText().isEmpty()) {
                 Toast.makeText(stage, "Не все поля заполнены");
-                return false;
+            }
+        }
+        for (LangItem field : langItems) {
+            if (!field.isFilled()) {
+                Toast.makeText(stage, "Не все поля заполнены");
             }
         }
         Book book = getBook();
@@ -189,12 +223,20 @@ public class BookDialogController implements Initializable {
     }
 
     public Book getBook(List<Chapter> chapters) {
-        return new Book(fromField.getText(), toField.getText(), fromAuthor.getText(),
-                toAuthor.getText(), from.getSelectionModel().getSelectedItem(), to.getSelectionModel().getSelectedItem(), chapters);
+        Book book = new Book(fromField.getText(), toField.getText(), fromAuthor.getText(),
+                from.getSelectionModel().getSelectedItem(), to.getSelectionModel().getSelectedItem(), chapters);
+        for (LangItem langItem : langItems) {
+            book.getLangs().add(langItem.getLang());
+        }
+        return book;
     }
 
     public Book getBook() {
-        return new Book(fromField.getText(), toField.getText(), fromAuthor.getText(),
-                toAuthor.getText(), from.getSelectionModel().getSelectedItem(), to.getSelectionModel().getSelectedItem(), thumbnailName);
+        Book book = new Book(fromField.getText(), toField.getText(), fromAuthor.getText(),
+                from.getSelectionModel().getSelectedItem(), to.getSelectionModel().getSelectedItem(), thumbnailName);
+        for (LangItem langItem : langItems) {
+            book.getLangs().add(langItem.getLang());
+        }
+        return book;
     }
 }

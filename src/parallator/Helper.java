@@ -1,11 +1,14 @@
 package parallator;
 
 
+import com.kursx.parser.fb2.Element;
 import com.kursx.parser.fb2.Section;
 import javafx.scene.Scene;
 import javafx.stage.DirectoryChooser;
 import javafx.stage.FileChooser;
+import parallator.controller.MainController;
 
+import javax.xml.bind.ValidationException;
 import java.io.*;
 import java.net.URL;
 import java.nio.channels.Channels;
@@ -29,8 +32,12 @@ public class Helper {
             DIV1REG, DIV2REG,
     };
 
-    public static final String[] dividers = {
+    public static final String[] PARAGRAPH_DIVIDERS = {
             DIV1, DIV2,
+    };
+
+    public static final String[] DIVIDERS = {
+            "\n", "\\.", ".\"", ".”", "!", "\\?", "…", ",", ";", ":"
     };
 
     public static void importFb2(List<Section> sections1, File directory, String from) {
@@ -41,53 +48,58 @@ public class Helper {
         }
     }
 
-    public static void write(List<Section> sections1,
-                             File directory, String from) throws IOException {
-        for (int i = 0; i < sections1.size(); i++) {
-            Section section1 = sections1.get(i);
-            File book = new File(directory + "/" + (i + 1) + "# " + section1.getTitleString(". ") + "Chapter " + (i + 1));
-            book.mkdirs();
-            if (!section1.getSections().isEmpty()) {
-                write(section1.getSections(), book, from);
-            } else {
-                StringBuilder stringBuilder1 = new StringBuilder();
-                if (i < sections1.size()) {
-                    section1.getElements().stream().filter(p -> p.getText() != null && !p.getText().isEmpty())
-                            .forEach(p -> stringBuilder1.append(p.getText()).append("\n\n"));
-                }
-                FileWriter fileWriter1 = new FileWriter(new File(book, from + ".txt"));
-                fileWriter1.append(stringBuilder1);
-                fileWriter1.flush();
-                fileWriter1.close();
-            }
-        }
-    }
-
-    public static void write(List<Chapter> sections1, String en, File directory) throws IOException {
-        for (int i = 0; i < sections1.size(); i++) {
-            Chapter section1 = sections1.get(i);
-            File book = null;
-            for (File file : directory.listFiles()) {
-                if (file.getName().startsWith((i + 1) + "# ")) {
+    public static void write(List<Section> sections, File bookDirectory, String lang) throws IOException {
+        for (int i = 0; i < sections.size(); i++) {
+            Section section = sections.get(i);
+            File book = new File(bookDirectory + "/" + (i + 1) + "# " + section.getTitleString(". ", ". ") + "Chapter " + (i + 1));
+            for (File file : bookDirectory.listFiles()) {
+                if (StringUtils.getBaseName(file).startsWith((i + 1) + "# ")) {
                     book = file;
                     break;
                 }
             }
-            if (section1.getChapters() != null) {
-                write(section1.getChapters(), en, book);
+            if (!book.exists()) book.mkdirs();
+            if (!section.getSections().isEmpty()) {
+                write(section.getSections(), book, lang);
             } else {
-//                StringBuilder stringBuilder1 = new StringBuilder();
-//                for (Paragraph paragraph : section1.paragraphs) {
-//                    if (en) {
-//                        stringBuilder1.append(paragraph.getEn()).append("\n\n");
-//                    } else {
-//                        stringBuilder1.append(paragraph.getRu()).append("\n\n");
-//                    }
-//                }
-//                FileWriter fileWriter1 = new FileWriter(new File(book, en ? "en.txt" : "ru.txt"));
-//                fileWriter1.append(stringBuilder1);
-//                fileWriter1.flush();
-//                fileWriter1.close();
+                StringBuilder stringBuilder1 = new StringBuilder();
+                if (i < sections.size()) {
+                    for (Element p : section.getElements()) {
+                        if (p != null && p.getText() != null && !p.getText().isEmpty()) {
+                            stringBuilder1.append(p.getText()).append("\n\n");
+                        }
+                    }
+                }
+                Writer writer1 = new OutputStreamWriter(
+                        new FileOutputStream(new File(book, lang + ".txt")), UTF_8);
+                writer1.append(stringBuilder1);
+                writer1.flush();
+                writer1.close();
+            }
+        }
+    }
+
+    public static void write(List<Chapter> sections, File directory) throws IOException {
+        for (Chapter section : sections) {
+            if (section.getChapters() != null) {
+                write(section.getChapters(), directory);
+            } else {
+                File chapter = new File(directory, (sections.indexOf(section) + 1) + "# " + section.getChapterName());
+                chapter.mkdir();
+                StringBuilder stringBuilder1 = new StringBuilder();
+                StringBuilder stringBuilder2 = new StringBuilder();
+                for (Map<String, String> paragraph : section.paragraphs) {
+                    stringBuilder1.append(paragraph.get("en")).append("\n\n");
+                    stringBuilder2.append(paragraph.get("ru")).append("\n\n");
+                }
+                FileWriter fileWriter1 = new FileWriter(new File(chapter, "en.txt"));
+                FileWriter fileWriter2 = new FileWriter(new File(chapter, "ru.txt"));
+                fileWriter1.append(stringBuilder1);
+                fileWriter2.append(stringBuilder2);
+                fileWriter1.flush();
+                fileWriter1.close();
+                fileWriter2.flush();
+                fileWriter2.close();
             }
         }
     }
@@ -129,6 +141,7 @@ public class Helper {
                 builder.append("\n");
                 if (!found) break;
             }
+
             FileWriter fileWriter = new FileWriter(new File(file, StringUtils.getBaseName(name) + ".csv"));
             fileWriter.append(builder);
             fileWriter.flush();
@@ -138,42 +151,56 @@ public class Helper {
         }
     }
 
-    public static void html(Scene scene, Map<String, List<String>> map, final File name) {
+    public static void html(Scene scene, MainController controller) {
         try {
             File file = showDirectoryChooser(scene);
             if (file == null) return;
-            int width = 100 / map.keySet().size();
-            StringBuilder builder = new StringBuilder();
-            builder.append("<html>\n<body>\n<table cellspacing = \"0\" border = \"1\" style=\"width:100%;\">");
-            builder.append("\n<tr>");
-            for (String key : map.keySet()) {
-                builder.append("\n<td width=\"").append(width).append("%\">").append(key).append("</td>");
-            }
-            builder.append("</tr>");
-            int position = 0;
-            while (true) {
-                boolean found = false;
-                for (String key : map.keySet()) {
-                    builder.append("\n<td width=\"").append(width).append("%\">");
-                    if (map.get(key).size() > position) {
-                        String value = map.get(key).get(position);
-                        builder.append(value);
-                        found = true;
-                    }
-                    builder.append("</td>");
-                }
-                position++;
-                builder.append("</tr>");
-                if (!found) break;
-            }
-            builder.append("\n</table>\n</body>\n</html>");
-            FileWriter fileWriter = new FileWriter(new File(file, StringUtils.getBaseName(name) + ".html"));
-            fileWriter.append(builder);
-            fileWriter.flush();
-            fileWriter.close();
+            writeHtml(controller.getTextMap(), file, controller.feelChapters(controller.getFile()), controller.getConfig().enc1());
         } catch (Exception e) {
             e.printStackTrace();
         }
+    }
+
+    public static void writeHtml(Map<String, List<String>> map, final File path, List<Chapter> list, String encoding) throws ValidationException, IOException {
+
+        StringBuilder builder = new StringBuilder();
+        builder.append("<html>\n<body>\n<table cellspacing = \"0\" border = \"1\" style=\"width:100%;\">");
+        builder.append("\n<tr>");
+        for (Chapter chapter : list) {
+            if (chapter.getChapters() == null) {
+                int width = 100 / map.keySet().size();
+                for (String key : map.keySet()) {
+                    builder.append("\n<td width=\"").append(width).append("%\">").append(key).append("</td>");
+                }
+                builder.append("</tr>");
+                int position = 0;
+                while (true) {
+                    boolean found = false;
+                    for (String key : map.keySet()) {
+                        builder.append("\n<td width=\"").append(width).append("%\">");
+                        if (map.get(key).size() > position) {
+                            String value = chapter.paragraphs.get(position).get(key);
+                            builder.append(value);
+                            found = true;
+                        }
+                        builder.append("</td>");
+                    }
+                    position++;
+                    builder.append("</tr>");
+                    if (!found) break;
+                }
+            } else {
+                writeHtml(map, new File(path, chapter.getChapterName()), chapter.getChapters(), encoding);
+            }
+        }
+
+        builder.append("\n</table>\n</body>\n</html>");
+        path.mkdir();
+        Writer writer1 = new OutputStreamWriter(
+                new FileOutputStream(new File(path, "book.html")), encoding);
+        writer1.append(builder);
+        writer1.flush();
+        writer1.close();
     }
 
     public static String getTextFromFile(String file, String enc) {
