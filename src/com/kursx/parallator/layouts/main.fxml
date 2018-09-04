@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.RadioButton?>
+<?import javafx.scene.control.SplitPane?>
+<?import javafx.scene.control.TableView?>
+<?import javafx.scene.control.TreeView?>
+<?import javafx.scene.layout.AnchorPane?>
+<?import javafx.scene.layout.VBox?>
+<?import javafx.scene.layout.HBox?>
+
+<?import javafx.scene.control.ProgressIndicator?>
+<?import javafx.scene.control.Button?>
+<VBox stylesheets="@../styles/main_theme.css" xmlns="http://javafx.com/javafx/8.0.112-ea"
+      xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.kursx.parallator.controller.MainController">
+
+    <SplitPane VBox.vgrow="ALWAYS">
+        <AnchorPane maxWidth="500">
+            <TreeView fx:id="chapters" AnchorPane.bottomAnchor="0.0" AnchorPane.leftAnchor="0.0"
+                      AnchorPane.rightAnchor="0.0" AnchorPane.topAnchor="0.0"/>
+        </AnchorPane>
+        <AnchorPane>
+            <TableView fx:id="table" AnchorPane.bottomAnchor="0.0" AnchorPane.leftAnchor="0.0"
+                       AnchorPane.rightAnchor="0.0" AnchorPane.topAnchor="0.0"/>
+            <Button fx:id="addText" text="Добавить текст" AnchorPane.rightAnchor="0.0"/>
+        </AnchorPane>
+    </SplitPane>
+
+    <AnchorPane VBox.vgrow="ALWAYS" maxHeight="10.0">
+
+        <HBox AnchorPane.rightAnchor="0.0">
+            <ProgressIndicator fx:id="progressIndicator" prefHeight="10" prefWidth="25" visible="false" />
+            <Label fx:id="progressLabel" text="Пожалуйста, подождите...  " visible="false" />
+            <RadioButton fx:id="red" text="Выделение"/>
+        </HBox>
+        <Label fx:id="statistics"/>
+        <VBox.margin>
+            <Insets bottom="3.0" top="3.0"/>
+        </VBox.margin>
+    </AnchorPane>
+</VBox>

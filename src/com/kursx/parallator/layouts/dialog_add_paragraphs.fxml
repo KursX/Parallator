@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.*?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+
+<VBox xmlns="http://javafx.com/javafx/8.0.112-ea" xmlns:fx="http://javafx.com/fxml/1"
+      fx:controller="com.kursx.parallator.controller.AddParagraphsDialogController">
+    <HBox fx:id="editsLayout" prefWidth="1000" prefHeight="500">
+        <padding>
+            <Insets bottom="5.0" top="5.0" left="5.0" right="5.0"/>
+        </padding>
+    </HBox>
+    <AnchorPane>
+        <Button fx:id="ok" text="Готово" AnchorPane.rightAnchor="5.0"/>
+    </AnchorPane>
+    <padding>
+        <Insets bottom="5.0" />
+    </padding>
+</VBox>
