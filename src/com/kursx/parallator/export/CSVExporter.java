@@ -15,7 +15,7 @@ public class CSVExporter implements FileExporter {
     public File process(MainController controller, Stage rootStage) throws Exception {
         Book book = BookConverter.saveDirectoriesToJsonFile(controller);
         if (book == null) return null;
-        return csv(controller.getTextMap(), controller.getFile(), book.getOnlyChaptersWithParagraphs(null),
+        return csv(controller.getTextMap(), controller.getFile(), book.getOnlyChaptersWithParagraphs(null, ""),
                 controller.getConfig().enc1());
     }
 

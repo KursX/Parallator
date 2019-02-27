@@ -203,7 +203,7 @@ public class Fb2DialogController implements Initializable {
             feel(sections, sections, "", box, left);
             try {
                 for (Binary binary : fictionBook.getBinaries().values()) {
-                        byte[] b = Base64.getDecoder().decode(binary.getBinary().getBytes(StandardCharsets.US_ASCII));
+                        byte[] b = Base64.getDecoder().decode(binary.getBinary().getBytes(StandardCharsets.UTF_8));
                         ByteArrayInputStream is = new ByteArrayInputStream(b);
                         FileOutputStream outStream = new FileOutputStream(new File(file.getParent(), binary.getId()));
                         int length;

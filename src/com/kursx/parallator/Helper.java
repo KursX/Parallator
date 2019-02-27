@@ -61,17 +61,29 @@ public class Helper {
             if (!section.getSections().isEmpty()) {
                 write(section.getSections(), book, lang);
             } else {
-                StringBuilder stringBuilder1 = new StringBuilder();
+                StringBuilder stringBuilder = new StringBuilder();
                 if (i < sections.size()) {
                     for (Element p : section.getElements()) {
                         if (p != null && p.getText() != null && !p.getText().isEmpty()) {
-                            stringBuilder1.append(p.getText()).append("\n\n");
+                            stringBuilder.append(p.getText());
+                            if (p.getText().matches("^.*\\w *$")) {
+                                stringBuilder.append(" ");
+                            } else {
+                                stringBuilder.append("\n");
+                            }
                         }
                     }
                 }
+
+                List<String> parts = PartsSeparator.getParts(stringBuilder.toString(), false);
+                StringBuilder resultBuilder = new StringBuilder();
+                for (String part : parts) {
+                    resultBuilder.append(part).append("\n\n");
+                }
+
                 Writer writer1 = new OutputStreamWriter(
                         new FileOutputStream(new File(book, lang + ".txt")), UTF_8);
-                writer1.append(stringBuilder1);
+                writer1.append(resultBuilder);
                 writer1.flush();
                 writer1.close();
             }

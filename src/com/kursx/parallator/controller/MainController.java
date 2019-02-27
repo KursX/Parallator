@@ -54,7 +54,7 @@ public class MainController implements Initializable {
 
 
     private VirtualFlow virtualFlow;
-    private File file, chasedFile;
+    public File file, chasedFile;
     private boolean edited = false;
 
     public void open(File file) {
@@ -80,13 +80,7 @@ public class MainController implements Initializable {
                 }
             }
             final int enL = enLength;
-            float quality[] = getPercent(file);
-            Platform.runLater(() -> {
-                MainController.this.statistics.setText(
-                        String.format("Доля абзацев подходящего размера: %1$.2f%%",
-                                (quality[1] - quality[0]) * 100 / quality[1]));
-                System.out.println(getKeys().get(0) + ": " + enL);
-            });
+            Platform.runLater(() -> System.out.println(getKeys().get(0) + ": " + enL));
         }).start();
     }
 
@@ -186,7 +180,7 @@ public class MainController implements Initializable {
                 showChapter(chasedFile);
             });
         }
-        table.scrollTo(getConfig().getBookmark());
+        table.scrollTo(getConfig().getBookmark(chasedFile.getAbsolutePath()));
     }
 
     public void showChapter() {
@@ -302,20 +296,16 @@ public class MainController implements Initializable {
         show();
     }
 
-    public void separate(int position, String key, String paragraph, List<String> separators) {
+    public void separate(int position, String key, String paragraph) {
         List<String> list = textMap.get(key);
         String oldLine = textMap.get(key).get(position);
 
-        List<String> parts = ParagraphCellFactory.getParts(paragraph);
+        List<String> parts = PartsSeparator.getParts(paragraph, true);
 
         list.remove(position);
 
-        for (int i = parts.size() - 1; i >= 0; i--) {
-            String line = parts.get(i).trim();
-            if (separators.size() > i) {
-                line += separators.get(i);
-            }
-            list.add(position, line);
+        for (String part : parts) {
+            list.add(position, part);
         }
 
         undo.add(0, number -> {
@@ -329,18 +319,15 @@ public class MainController implements Initializable {
         show();
     }
 
-    public void separate(int position, String key, List<String> parts, int index, List<String> separators) {
+    public void separate(int position, String key, List<String> parts, int index) {
         List<String> list = textMap.get(key);
         String oldLine = textMap.get(key).get(position);
         String first = "", second = "";
         for (int i = 0; i < parts.size(); i++) {
             if (i < index) {
-                first += parts.get(i) + separators.get(i);
+                first += parts.get(i) + " ";
             } else {
-                second += parts.get(i);
-                if (separators.size() > i) {
-                    second += separators.get(i);
-                }
+                second += parts.get(i) + " ";
             }
         }
         list.remove(position);
@@ -485,37 +472,6 @@ public class MainController implements Initializable {
             }
         }
         return chapters;
-    }
-
-    public float[] getPercent(File file) {
-        float[] arr = new float[2];
-        Config config = getConfig();
-        if (file.isDirectory()) {
-            File[] files = file.listFiles();
-            if (files != null) {
-                for (File subFile : files) {
-                    if (ChapterCellFactory.isChapter(subFile)) {
-                        for (String key : getKeys()) {
-                            File textFile = new File(subFile, key + ".txt");
-                            if (textFile.exists()) {
-                                String en = Helper.getTextFromFile(textFile, config.enc1()).trim();
-
-                                for (String s : en.split(config.dividerRegex())) {
-                                    List<String> parts = ParagraphCellFactory.getParts(s);
-                                    if (parts.size() > 5) arr[0]++;
-                                    arr[1]++;
-                                }
-                            }
-                        }
-                    } else {
-                        float[] arr1 = getPercent(subFile);
-                        arr[0] += arr1[0];
-                        arr[1] += arr1[1];
-                    }
-                }
-            }
-        }
-        return arr;
     }
 
     public void edit() {

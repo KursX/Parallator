@@ -7,6 +7,7 @@ import com.kursx.parallator.controller.Fb2DialogController;
 import com.kursx.parallator.controller.MainController;
 import com.kursx.parallator.export.CSVExporter;
 import com.kursx.parallator.export.HtmlExporter;
+import com.kursx.parallator.export.OfflineExporter;
 import com.kursx.parallator.export.SB2Exporter;
 import javafx.application.Platform;
 import javafx.fxml.FXMLLoader;
@@ -34,6 +35,7 @@ public class BookMenu {
         MenuItem csv = new MenuItem("CSV");
         MenuItem sb2 = new MenuItem("SB2");
         MenuItem html = new MenuItem("HTML");
+        MenuItem offline = new MenuItem("Оффлайн перевод");
         imp.getItems().addAll(fb2, json);
         exp.getItems().addAll(csv, html, sb2);
         menu.getItems().addAll(imp, exp, info);
@@ -59,6 +61,16 @@ public class BookMenu {
             final int progress = rootController.startProgress("Подождите, идет создание csv");
             new Thread(() -> {
                 BookConverter.convert(rootController, rootStage, new CSVExporter());
+                rootController.stopProgress(progress);
+            }).start();
+        });
+
+
+
+        offline.setOnAction(event -> {
+            final int progress = rootController.startProgress("Подождите, идет создание оффлайн перевода");
+            new Thread(() -> {
+                BookConverter.convert(rootController, rootStage, new OfflineExporter());
                 rootController.stopProgress(progress);
             }).start();
         });

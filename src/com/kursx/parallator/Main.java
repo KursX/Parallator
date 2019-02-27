@@ -9,14 +9,12 @@ import javafx.fxml.FXMLLoader;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
 import javafx.scene.control.*;
-import javafx.scene.input.KeyCombination;
 import javafx.scene.input.KeyEvent;
 import javafx.scene.layout.VBox;
 import javafx.stage.Stage;
 import com.kursx.parallator.controller.MainController;
 import java.io.File;
 import java.io.IOException;
-import java.util.Collections;
 import java.util.Optional;
 
 public class Main extends Application {
@@ -108,4 +106,5 @@ public class Main extends Application {
     public static void main(String[] args) {
         launch(args);
     }
+
 }

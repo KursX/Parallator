@@ -32,7 +32,7 @@
         <HBox AnchorPane.rightAnchor="0.0">
             <ProgressIndicator fx:id="progressIndicator" prefHeight="10" prefWidth="25" visible="false" />
             <Label fx:id="progressLabel" text="Пожалуйста, подождите...  " visible="false" />
-            <RadioButton fx:id="red" text="Выделение"/>
+            <RadioButton fx:id="red" text="Smart Book режим"/>
         </HBox>
         <Label fx:id="statistics"/>
         <VBox.margin>

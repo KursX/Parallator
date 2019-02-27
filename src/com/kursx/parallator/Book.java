@@ -101,14 +101,18 @@ public class Book {
     }
 
 
-    public List<Chapter> getOnlyChaptersWithParagraphs(List<Chapter> chapters) {
+    public List<Chapter> getOnlyChaptersWithParagraphs(List<Chapter> chapters, String path) {
         if (chapters == null) chapters = this.chapters;
+        int counter = 0;
         for (Chapter chapter : new ArrayList<>(chapters)) {
+            String currPath = path + counter;
             if (chapter.getChapters() != null && !chapter.getChapters().isEmpty()) {
-                chapters.addAll(getOnlyChaptersWithParagraphs(chapter.getChapters()));
+                chapters.addAll(getOnlyChaptersWithParagraphs(chapter.getChapters(), currPath + "-"));
             } else {
+                chapter.path = currPath;
                 chapters.add(chapter);
             }
+            counter++;
         }
         return chapters;
     }

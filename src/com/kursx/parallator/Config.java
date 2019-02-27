@@ -97,15 +97,15 @@ public class Config {
         save(file);
     }
 
-    public void addBookmark(int position, File file) {
+    public void addBookmark(String path, int position, File file) {
         if (bookmarks == null) bookmarks = new HashMap<>();
-        bookmarks.put(lastChapterPath, position);
+        bookmarks.put(path, position);
         save(file);
     }
 
-    public int getBookmark() {
-        if (bookmarks == null || bookmarks.get(lastChapterPath)== null ) return 0;
-        return bookmarks.get(lastChapterPath);
+    public int getBookmark(String chapterPath) {
+        if (bookmarks == null || bookmarks.get(chapterPath) == null ) return 0;
+        return bookmarks.get(chapterPath);
     }
 
     public boolean isRed() {

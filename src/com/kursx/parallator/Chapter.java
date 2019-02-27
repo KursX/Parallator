@@ -11,6 +11,8 @@ public class Chapter {
     public List<Map<String, String>> paragraphs;
     List<Chapter> chapters;
 
+    public transient String path;
+
     public Chapter(String chapterName, String chapterDescription, List<Map<String, String>> paragraphs) {
         this.chapterName = chapterName;
         this.paragraphs = paragraphs;
