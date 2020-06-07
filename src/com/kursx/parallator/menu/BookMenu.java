@@ -34,11 +34,25 @@ public class BookMenu {
         MenuItem fb2 = new MenuItem("FB2");
         MenuItem csv = new MenuItem("CSV");
         MenuItem sb2 = new MenuItem("SB2");
+        MenuItem studyEnglishWords = new MenuItem("studyenglishwords.com");
         MenuItem html = new MenuItem("HTML");
         MenuItem offline = new MenuItem("Оффлайн перевод");
-        imp.getItems().addAll(fb2, json);
-        exp.getItems().addAll(csv, html, sb2);
+        imp.getItems().addAll(fb2, json, studyEnglishWords);
+        exp.getItems().addAll(csv, html, sb2, offline);
         menu.getItems().addAll(imp, exp, info);
+
+        studyEnglishWords.setOnAction(event -> {
+            final File file = Helper.showFileChooser(rootStage.getScene(),
+                    new FileChooser.ExtensionFilter("HTML(en+ru)", "*.html"));
+            if (file == null) return;
+            final int progress = rootController.startProgress("Подождите, идет импорт html");
+            new Thread(() -> {
+                StudyEnglishWords.INSTANCE.parse(file);
+
+                rootController.stopProgress(progress);
+                rootController.open(file.getParentFile());
+            }).start();
+        });
 
         json.setOnAction(event -> {
             final File file = Helper.showFileChooser(rootStage.getScene(),
@@ -54,11 +68,12 @@ public class BookMenu {
                 }
                 rootController.stopProgress(progress);
                 rootController.open(file.getParentFile());
+                file.renameTo(new File(file.getParentFile(), "book.json"));
             }).start();
         });
 
         csv.setOnAction(event -> {
-            final int progress = rootController.startProgress("Подождите, идет создание csv");
+            final int progress = rootController.startProgress("Подождите, идет создание offline");
             new Thread(() -> {
                 BookConverter.convert(rootController, rootStage, new CSVExporter());
                 rootController.stopProgress(progress);

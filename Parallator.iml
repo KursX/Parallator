@@ -11,5 +11,6 @@
     <orderEntry type="library" name="fb2parser" level="project" />
     <orderEntry type="library" name="lib" level="project" />
     <orderEntry type="library" name="Parallator" level="project" />
+    <orderEntry type="library" name="KotlinJavaRuntime" level="project" />
   </component>
 </module>

@@ -119,7 +119,7 @@ public class BookDialogController implements Initializable {
                 ImageHelper.copyFile(file, new File(main.getRootController().getFile(), thumbnailName));
                 Image image = new Image(file.toURI().toString());
                 if (!ImageHelper.checkImageSize(image)) {
-                    Toast.makeText(stage, "Загрузите картинку 300x300");
+                    Toast.makeText(stage, "Загрузите квадратную картинку");
                 }
                 thumbnail.setVisible(true);
                 thumbnail.setImage(image);

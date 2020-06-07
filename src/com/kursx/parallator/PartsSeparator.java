@@ -6,7 +6,7 @@ import java.util.regex.Pattern;
 
 public class PartsSeparator {
 
-    public static List<String> getParts(String input, boolean fullSeparating) {
+    public static List<String> getParts(String input, boolean fullSeparating, String dividers) {
         int minimum = fullSeparating ? 0 : 25;
         String data = input;
         try {
@@ -14,7 +14,7 @@ public class PartsSeparator {
             int startIndex = 0;
             while (true) {
 
-                int index = indexOf(data);
+                int index = indexOf(data, fullSeparating, dividers);
                 if (index == -1) {
                     break;
                 }
@@ -49,8 +49,13 @@ public class PartsSeparator {
         return Collections.singletonList(input);
     }
 
-    static int indexOf(String s) {
-        Matcher matcher = p.matcher(s);
+    static int indexOf(String s, boolean full, String dividers) {
+        Matcher matcher;
+        if (dividers != null) {
+            matcher = Pattern.compile(dividers).matcher(s);
+        } else {
+            matcher = (full ? fullP : p).matcher(s);
+        }
         return matcher.find() ? matcher.start() : -1;
     }
 
@@ -79,4 +84,6 @@ public class PartsSeparator {
 
 
     static Pattern p = Pattern.compile("[.…!?][ \\w\n]");
+    static Pattern fullP = Pattern.compile("[.…!?]");
+    static Pattern userP = Pattern.compile("[.…!?]");
 }

@@ -20,6 +20,15 @@ public class MainConfig {
     public MainConfig() {
     }
 
+    public String dividersRegex() {
+        String result = "";
+        if (dividers.isEmpty()) return PartsSeparator.fullP.pattern();
+        for (String divider : dividers) {
+            result += divider + ")|(";
+        }
+        return "(" + result.substring(0, result.length() - 2) ;
+    }
+
     public void save() {
         File workingDirectory = new File(System.getProperty("user.dir"));
         try {

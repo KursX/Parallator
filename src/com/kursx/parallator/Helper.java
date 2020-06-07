@@ -36,7 +36,7 @@ public class Helper {
     };
 
     public static final String[] DIVIDERS = {
-            "\n", "\\.", ".\"", ".”", "!", "\\?", "…", ",", ";", ":"
+            "\n", "\\.", ".\"", "!", "\\?", "…", ",", ";", ":", "!\"", ".\"", "?\"", "!“", ".“", "?“", "!”", ".”", "?”"
     };
 
     public static void importFb2(List<Section> sections1, File directory, String from) {
@@ -75,7 +75,7 @@ public class Helper {
                     }
                 }
 
-                List<String> parts = PartsSeparator.getParts(stringBuilder.toString(), false);
+                List<String> parts = PartsSeparator.getParts(stringBuilder.toString(), false, null);
                 StringBuilder resultBuilder = new StringBuilder();
                 for (String part : parts) {
                     resultBuilder.append(part).append("\n\n");
@@ -199,23 +199,6 @@ public class Helper {
                 Logger.exception(e);
             }
         }
-    }
-
-    public static String writeToString(InputStream is) throws IOException {
-        String response;
-        ByteArrayOutputStream bos = new ByteArrayOutputStream();
-        byte[] buf = new byte[256];
-        while (true) {
-            int rd = is.read(buf, 0, 256);
-            if (rd == -1)
-                break;
-            bos.write(buf, 0, rd);
-        }
-        bos.flush();
-        buf = bos.toByteArray();
-        response = new String(buf);
-        is.close();
-        return response;
     }
 
 

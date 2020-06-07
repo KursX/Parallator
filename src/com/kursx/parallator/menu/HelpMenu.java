@@ -20,7 +20,7 @@ public class HelpMenu {
         menu = new Menu("Помощь");
         MenuItem about = new MenuItem("О Программе");
         MenuItem update = new MenuItem("Обновить программу");
-        about.setOnAction(event -> Toast.makeText(stage, "Parallator v0.99 by KursX \n kursxinc@gmail.com", 5000));
+        about.setOnAction(event -> Toast.makeText(stage, "Parallator v1.1 by KursX \n kursxinc@gmail.com", 5000));
         update.setOnAction(event -> update());
         menu.getItems().addAll(update, about);
     }

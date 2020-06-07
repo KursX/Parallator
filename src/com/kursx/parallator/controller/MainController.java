@@ -52,7 +52,6 @@ public class MainController implements Initializable {
     @FXML
     private Button addText;
 
-
     private VirtualFlow virtualFlow;
     public File file, chasedFile;
     private boolean edited = false;
@@ -96,9 +95,11 @@ public class MainController implements Initializable {
     private int progressCounter = 0;
 
     public int startProgress(String text) {
-        progressLabel.setText(text + "...  ");
-        progressLabel.setVisible(true);
-        progressIndicator.setVisible(true);
+        Platform.runLater(() -> {
+            progressLabel.setText(text + "...  ");
+            progressLabel.setVisible(true);
+            progressIndicator.setVisible(true);
+        });
         return ++progressCounter;
     }
 
@@ -149,7 +150,8 @@ public class MainController implements Initializable {
         init = true;
         show();
 
-        red.setSelected(getConfig().isRed());
+        boolean isRed = getConfig().isRed();
+        red.setSelected(isRed);
         red.setOnAction(event -> {
             boolean checked = red.isSelected();
             getConfig().setRed(checked, getFile());
@@ -300,12 +302,12 @@ public class MainController implements Initializable {
         List<String> list = textMap.get(key);
         String oldLine = textMap.get(key).get(position);
 
-        List<String> parts = PartsSeparator.getParts(paragraph, true);
+        List<String> parts = PartsSeparator.getParts(paragraph, true, null);
 
         list.remove(position);
 
-        for (String part : parts) {
-            list.add(position, part);
+        for (int i = parts.size() - 1; i >= 0; i--) {
+            list.add(position, parts.get(i));
         }
 
         undo.add(0, number -> {
@@ -451,7 +453,9 @@ public class MainController implements Initializable {
                     }
 
                     for (String key : getKeys()) {
-                        if (paragraphs.get(key).size() != paragraphs.get(getKeys().get(0)).size()) throw new ValidationException();
+                        if (paragraphs.get(key).size() != paragraphs.get(getKeys().get(0)).size()) {
+                            throw new ValidationException();
+                        }
                     }
                     List<Map<String, String>> list = new ArrayList<>();
                     for (int index = 0; index < paragraphs.get(getKeys().get(0)).size(); index++) {

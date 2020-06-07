@@ -35,7 +35,7 @@ public class SB2Exporter implements FileExporter {
 
 
     public static File sb2RequestToBackend(String bookName, File dir) throws Exception {
-        String url = "http://smart-book.net/translation/file";
+        String url = "http://78.24.222.193//translation/file";
         String charset = "UTF-8";
         String boundary = Long.toHexString(System.currentTimeMillis());
         String CRLF = "\r\n";

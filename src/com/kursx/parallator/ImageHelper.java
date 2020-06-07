@@ -21,7 +21,7 @@ public class ImageHelper {
         outStream.close();
     }
 
-    public static boolean checkImageSize(Image image) throws IOException {
-        return !(image.getHeight() != 300 || image.getWidth() != 300);
+    public static boolean checkImageSize(Image image) {
+        return image.getHeight() == image.getWidth();
     }
 }

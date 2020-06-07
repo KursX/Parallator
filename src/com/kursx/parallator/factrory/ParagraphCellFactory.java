@@ -7,7 +7,6 @@ import javafx.scene.Parent;
 import javafx.scene.Scene;
 import javafx.scene.control.*;
 import javafx.scene.input.MouseButton;
-import javafx.scene.paint.Color;
 import javafx.scene.text.Font;
 import javafx.scene.text.Text;
 import javafx.stage.Stage;
@@ -52,60 +51,59 @@ public class ParagraphCellFactory implements Callback<TableColumn<Map<String, St
             text.textProperty().setValue("Картинка");
             cell.setGraphic(text);
         }
-            cell.setOnMouseClicked(t -> {
-                if (controller.getConfig().isRed() && key.equals("en")) {
+        cell.setOnMouseClicked(t -> {
+            if (controller.getConfig().isRed() && key.equals("en")) {
+                return;
+            }
+            controller.getConfig().addBookmark(controller.chasedFile.getAbsolutePath(), cell.getIndex(), controller.getFile());
+            final String data = param.getCellObservableValue(cell.getIndex()).getValue();
+            List<String> parts = PartsSeparator.getParts(data, true, MainConfig.getMainConfig().dividersRegex());
+            if (contextMenu != null) contextMenu.hide();
+            contextMenu = new ContextMenu();
+            if (t.getButton() == MouseButton.PRIMARY) {
+                MenuItem edit = new MenuItem("Редактировать");
+                edit.setOnAction(event -> showEdit(data, cell.getIndex()));
+
+                if (parts.size() > 1) {
+                    MenuItem auto = new MenuItem("Авторазбиение");
+                    contextMenu.getItems().addAll(auto, new SeparatorMenuItem());
+                    for (int i = 1; i < parts.size(); i++) {
+                        final int index = i;
+                        String left = parts.get(i - 1).length() > 14 ? parts.get(i - 1).substring(
+                                parts.get(i - 1).length() - 15) : parts.get(i - 1);
+                        String right = parts.get(i).length() > 14 ? parts.get(i).substring(0, 15) : parts.get(i);
+                        MenuItem item = new MenuItem(left + " <--> " + right);item.setOnAction(event -> controller.separate(cell.getIndex(), key, parts, index));
+                        contextMenu.getItems().add(item);
+                    }
+                    auto.setOnAction(event -> controller.separate(cell.getIndex(), key, data));
+                    contextMenu.getItems().add(new SeparatorMenuItem());
+                } else {
+                    showEdit(data, cell.getIndex());
                     return;
                 }
-                controller.getConfig().addBookmark(controller.chasedFile.getAbsolutePath(), cell.getIndex(), controller.getFile());
-                final String data = param.getCellObservableValue(cell.getIndex()).getValue();
-                List<String> parts = PartsSeparator.getParts(data, true);
-                if (contextMenu != null) contextMenu.hide();
-                contextMenu = new ContextMenu();
-                if (t.getButton() == MouseButton.PRIMARY) {
-                    MenuItem edit = new MenuItem("Редактировать");
-                    edit.setOnAction(event -> showEdit(data, cell.getIndex()));
 
-                    if (parts.size() > 1) {
-                        MenuItem auto = new MenuItem("Авторазбиение");
-                        contextMenu.getItems().addAll(auto, new SeparatorMenuItem());
-                        for (int i = 1; i < parts.size(); i++) {
-                            final int index = i;
-                            String left = parts.get(i - 1).length() > 14 ? parts.get(i - 1).substring(
-                                    parts.get(i - 1).length() - 15) : parts.get(i - 1);
-                            String right = parts.get(i).length() > 14 ? parts.get(i).substring(0, 15) : parts.get(i);
-                            MenuItem item = new MenuItem(left + " <--> " + right);
-                            item.setOnAction(event -> controller.separate(cell.getIndex(), key, parts, index));
-                            contextMenu.getItems().add(item);
-                        }
-                        auto.setOnAction(event -> controller.separate(cell.getIndex(), key, data));
-                        contextMenu.getItems().add(new SeparatorMenuItem());
-                    } else {
-                        showEdit(data, cell.getIndex());
-                        return;
-                    }
-
-                    contextMenu.getItems().add(edit);
-                } else if (t.getButton() == MouseButton.SECONDARY) {
-                    MenuItem up = new MenuItem("Переместить вверх");
-                    MenuItem delete = new MenuItem("Удалить");
-                    MenuItem down = new MenuItem("Переместить вниз");
-                    MenuItem nextChapter = new MenuItem("Переместить в следующую главу");
-                    contextMenu.getItems().addAll(up, delete, down, nextChapter);
-                    nextChapter.setOnAction(event -> {
-                        new Thread(() -> controller.nextChapter(cell.getIndex(), key)).start();
-                    });
-                    delete.setOnAction(event -> {
-                        controller.remove(cell.getIndex(), key);
-                    });
-                    up.setOnAction(event -> {
-                        controller.down(cell.getIndex(), key);
-                    });
-                    down.setOnAction(event -> {
-                        controller.up(cell.getIndex(), key);
-                    });
-                }
-                contextMenu.show(cell, t.getScreenX(), t.getScreenY());
-            });
+                contextMenu.getItems().add(edit);
+            } else if (t.getButton() == MouseButton.SECONDARY) {
+                MenuItem up = new MenuItem("Переместить вверх");
+                MenuItem delete = new MenuItem("Удалить");
+                MenuItem down = new MenuItem("Переместить вниз");
+                MenuItem nextChapter = new MenuItem("Переместить в следующую главу");
+                contextMenu.getItems().addAll(up, delete, down, nextChapter);
+                nextChapter.setOnAction(event -> {
+                    new Thread(() -> controller.nextChapter(cell.getIndex(), key)).start();
+                });
+                delete.setOnAction(event -> {
+                    controller.remove(cell.getIndex(), key);
+                });
+                up.setOnAction(event -> {
+                    controller.down(cell.getIndex(), key);
+                });
+                down.setOnAction(event -> {
+                    controller.up(cell.getIndex(), key);
+                });
+            }
+            contextMenu.show(cell, t.getScreenX(), t.getScreenY());
+        });
         return cell;
     }
 

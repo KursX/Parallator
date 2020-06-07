@@ -6,6 +6,7 @@ import com.kursx.parallator.controller.BookDialogController;
 import com.kursx.parallator.controller.MainController;
 
 import java.io.*;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
@@ -42,7 +43,7 @@ public class CSVExporter implements FileExporter {
         }
 
         path.mkdir();
-        File file = new File(path, "book.csv");
+        File file = new File(path, "book.offline");
         Helper.writeToFile(file, encoding, builder);
         return file;
     }

@@ -42,10 +42,20 @@ public class Book {
         this.chapters = chapters;
         this.author = author;
         langs.add(new Lang(from, name, author, null, null));
+        initFileName();
+    }
+
+    public void initFileName() {
+        filename = "";
         for (String part : name.split(" ")) {
             filename += part.toLowerCase() + "_";
         }
-        filename = filename.substring(0, filename.length() - 1) + ".sb";
+        filename = filename.substring(0, filename.length() - 1)
+                .replace("'", "")
+                .replace(":", "")
+                .replace(")", "")
+                .replace("(", "")
+                + ".sb";
     }
 
 
@@ -60,11 +70,7 @@ public class Book {
         this.chapters = new ArrayList<>();
         this.author = author;
         langs.add(new Lang(from, name, author, null, null));
-        filename = "";
-        for (String part : name.split(" ")) {
-            filename += part.toLowerCase() + "_";
-        }
-        filename = filename.substring(0, filename.length() - 1) + ".sb";
+        initFileName();
         this.thumbnail = thumbnail;
     }
 
@@ -103,17 +109,18 @@ public class Book {
 
     public List<Chapter> getOnlyChaptersWithParagraphs(List<Chapter> chapters, String path) {
         if (chapters == null) chapters = this.chapters;
+        List<Chapter> allChapters = new ArrayList<>();
         int counter = 0;
         for (Chapter chapter : new ArrayList<>(chapters)) {
             String currPath = path + counter;
             if (chapter.getChapters() != null && !chapter.getChapters().isEmpty()) {
-                chapters.addAll(getOnlyChaptersWithParagraphs(chapter.getChapters(), currPath + "-"));
+                allChapters.addAll(getOnlyChaptersWithParagraphs(chapter.getChapters(), currPath + "-"));
             } else {
                 chapter.path = currPath;
-                chapters.add(chapter);
+                allChapters.add(chapter);
             }
             counter++;
         }
-        return chapters;
+        return allChapters;
     }
 }
