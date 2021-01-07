@@ -21,11 +21,11 @@ public class SB2Exporter implements FileExporter {
         }
         File thumbnail = new File(bookRootFile, "thumbnail.jpg");
         if (!thumbnail.exists()) {
-            Toast.makeText(rootStage, "Добавьте изображение 300х300");
+            Toast.makeText(rootStage, "Добавьте изображение");
             return null;
         }
         if (!ImageHelper.checkImageSize(new Image(thumbnail.toURI().toString()))) {
-            Toast.makeText(rootStage, "Изображение должно быть 300x300");
+            Toast.makeText(rootStage, "Изображение должно быть квадратным");
             return null;
         }
         Book book = BookConverter.saveDirectoriesToJsonFile(controller);
@@ -34,53 +34,17 @@ public class SB2Exporter implements FileExporter {
     }
 
 
+    static String root = "/home/sb2/";
+    static String url = "https://smart-book.net/sb2/";
+
+//    static String root = "/Users/macbook/";
+//    static String url = "http://localhost:8080/";
+
     public static File sb2RequestToBackend(String bookName, File dir) throws Exception {
-        String url = "http://78.24.222.193//translation/file";
-        String charset = "UTF-8";
-        String boundary = Long.toHexString(System.currentTimeMillis());
-        String CRLF = "\r\n";
+        uploadFile(bookName, new File(dir, "book.json"), bookName + ".json");
+        uploadFile(bookName, new File(dir, "thumbnail.jpg"), bookName + ".jpg");
 
-        HttpURLConnection connection = (HttpURLConnection) new URL(url).openConnection();
-        connection.setDoOutput(true);
-        connection.setRequestProperty("Content-Type", "multipart/form-data; boundary=" + boundary);
-        OutputStream output = connection.getOutputStream();
-        PrintWriter writer = new PrintWriter(new OutputStreamWriter(output, charset), true);
-
-        // Send normal param.
-        writer.append("--").append(boundary).append(CRLF);
-        writer.append("Content-Disposition: form-data; name=\"book_name\"").append(CRLF);
-        writer.append("Content-Type: text/plain; charset=").append(charset).append(CRLF);
-        writer.append(CRLF).append(bookName).append(CRLF).flush();
-        writer.append("--").append(boundary).append(CRLF);
-
-        writer.append("Content-Disposition: form-data; name=\"json\"; filename=\"book.json\"").append(CRLF);
-        writer.append("Content-Type: text/plain; charset=").append(charset).append(CRLF);
-        writer.append(CRLF).flush();
-        Files.copy(new File(dir, "book.json").toPath(), output);
-        output.flush();
-        writer.append(CRLF).flush();
-        writer.append("--").append(boundary).append("--").append(CRLF).flush();
-
-        writer.append("Content-Disposition: form-data; name=\"thumbnail\"; filename=\"thumbnail.jpg\"").append(CRLF);
-        writer.append("Content-Type: image/jpeg; charset=").append(charset).append(CRLF);
-        writer.append(CRLF).flush();
-        Files.copy(new File(dir, "thumbnail.jpg").toPath(), output);
-        output.flush();
-        writer.append(CRLF).flush();
-        writer.append("--").append(boundary).append("--").append(CRLF).flush();
-
-        if (new File(dir, "img").exists()) {
-            for (File file : new File(dir, "img").listFiles()) {
-                writer.append("Content-Disposition: form-data; name=\"" + file.getName() + "\"; filename=\"")
-                        .append(file.getName()).append("\"").append(CRLF);
-                writer.append("Content-Type: image/jpeg; charset=").append(charset).append(CRLF);
-                writer.append(CRLF).flush();
-                Files.copy(file.toPath(), output);
-                output.flush();
-                writer.append(CRLF).flush();
-                writer.append("--").append(boundary).append("--").append(CRLF).flush();
-            }
-        }
+        HttpURLConnection connection = (HttpURLConnection) new URL(url + "/export.sb2?filename=" + bookName).openConnection();
 
         File result;
         try {
@@ -91,6 +55,30 @@ public class SB2Exporter implements FileExporter {
             result = new File(dir, bookName + ".html");
             Helper.writeToFile(connection.getErrorStream(), result);
         }
-        return result;
+        return dir;
+    }
+
+
+    public static void uploadFile(String bookName, File file, String name) throws Exception {
+        String charset = "UTF-8";
+        String boundary = Long.toHexString(System.currentTimeMillis());
+        String CRLF = "\r\n";
+
+        HttpURLConnection connection = (HttpURLConnection) new URL(url + "upload").openConnection();
+        connection.setDoOutput(true);
+        connection.setRequestProperty("Content-Type", "multipart/form-data; boundary=" + boundary);
+        OutputStream output = connection.getOutputStream();
+        PrintWriter writer = new PrintWriter(new OutputStreamWriter(output, charset), true);
+
+        writer.append("--").append(boundary).append(CRLF);
+        writer.append("Content-Disposition: form-data; filename=\"").append(name).append("\"; path=\"").append(root).append(bookName).append(CRLF);
+        writer.append("Content-Type: text/plain; charset=").append(charset).append(CRLF);
+        writer.append(CRLF).flush();
+        Files.copy(file.toPath(), output);
+        output.flush();
+        writer.append(CRLF).flush();
+        writer.append("--").append(boundary).append("--").append(CRLF).flush();
+
+        connection.getInputStream();
     }
 }

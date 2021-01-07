@@ -18,6 +18,7 @@ import javafx.scene.control.MenuItem;
 import javafx.stage.FileChooser;
 import javafx.stage.Stage;
 
+import javax.swing.*;
 import java.io.File;
 import java.io.IOException;
 
@@ -45,12 +46,11 @@ public class BookMenu {
             final File file = Helper.showFileChooser(rootStage.getScene(),
                     new FileChooser.ExtensionFilter("HTML(en+ru)", "*.html"));
             if (file == null) return;
-            final int progress = rootController.startProgress("Подождите, идет импорт html");
+            rootController.startProgress("Подождите, идет импорт html");
             new Thread(() -> {
-                StudyEnglishWords.INSTANCE.parse(file);
+                File jsonFile = StudyEnglishWords.INSTANCE.parse(file);
 
-                rootController.stopProgress(progress);
-                rootController.open(file.getParentFile());
+                parseJson(rootController, jsonFile);
             }).start();
         });
 
@@ -58,18 +58,7 @@ public class BookMenu {
             final File file = Helper.showFileChooser(rootStage.getScene(),
                     new FileChooser.ExtensionFilter("fb2", "*.json"));
             if (file == null) return;
-            final int progress = rootController.startProgress("Подождите, идет импорт json");
-            new Thread(() -> {
-                Book book = new Gson().fromJson(Helper.getTextFromFile(file, Helper.UTF_8), Book.class);
-                try {
-                    Helper.write(book.getChapters(), file.getParentFile());
-                } catch (IOException e) {
-                    Logger.exception(e);
-                }
-                rootController.stopProgress(progress);
-                rootController.open(file.getParentFile());
-                file.renameTo(new File(file.getParentFile(), "book.json"));
-            }).start();
+            parseJson(rootController, file);
         });
 
         csv.setOnAction(event -> {
@@ -146,5 +135,25 @@ public class BookMenu {
                 Logger.exception(e);
             }
         });
+    }
+
+    public void parseJson(MainController rootController, File file) {
+        final int progress = rootController.startProgress("Подождите, идет импорт json");
+        new Thread(() -> {
+            Book book = new Gson().fromJson(Helper.getTextFromFile(file, Helper.UTF_8), Book.class);
+            File dir = new File(file.getParentFile(), book.getFilename().split("\\.")[0]);
+            dir.mkdir();
+            try {
+                Helper.write(book.getChapters(), dir);
+            } catch (IOException e) {
+                Logger.exception(e);
+            }
+            Platform.runLater(() -> {
+                rootController.stopProgress(progress);
+                rootController.open(dir);
+                file.renameTo(new File(dir, "book.json"));
+            });
+        }).start();
+
     }
 }

@@ -10,19 +10,11 @@ public class Book {
         public String name;
         public String lang;
         public String author;
-        public String translation;
-        public Integer translationSize;
 
-        public Lang(String lang, String name,  String author,
-                    String translation, String translationSize) {
+        public Lang(String lang, String name,  String author) {
             this.name = name;
             this.lang = lang;
             this.author = author;
-            this.translation = translation;
-            this.translationSize = translationSize != null
-                    && !translationSize.isEmpty()
-                    && !translationSize.equals("null")
-                    ? Integer.parseInt(translationSize) : null;
         }
     }
 
@@ -41,7 +33,7 @@ public class Book {
         this.hash = hash;
         this.chapters = chapters;
         this.author = author;
-        langs.add(new Lang(from, name, author, null, null));
+        langs.add(new Lang(from, name, author));
         initFileName();
     }
 
@@ -69,7 +61,7 @@ public class Book {
         this.hash = hash;
         this.chapters = new ArrayList<>();
         this.author = author;
-        langs.add(new Lang(from, name, author, null, null));
+        langs.add(new Lang(from, name, author));
         initFileName();
         this.thumbnail = thumbnail;
     }

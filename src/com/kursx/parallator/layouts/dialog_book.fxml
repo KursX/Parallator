@@ -41,7 +41,7 @@
                 <Insets bottom="10.0" left="10.0" right="10.0" top="10.0"/>
             </VBox.margin>
         </ImageView>
-        <Button fx:id="thumbnailButton" text="Картинка 300x300"/>
+        <Button fx:id="thumbnailButton" text="Квадратная картинка"/>
         <HBox alignment="CENTER">
             <Button fx:id="cancel" text="Отмена">
                 <HBox.margin>

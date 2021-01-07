@@ -30,7 +30,7 @@ public class BookDialogController implements Initializable {
     private final String thumbnailName = "thumbnail.jpg";
     public static final ObservableList<String> langs = FXCollections.observableArrayList(
             "ru", "en", "be", "bg", "cs", "da", "de", "el", "es", "et", "fi", "fr",
-            "it", "lt", "lv", "nl", "no", "pl", "pt", "sk", "sv", "tr", "tt", "uk"
+            "it", "lt", "lv", "nl", "no", "pl", "pt", "sk", "sv", "tr", "tt", "uk", "ro"
     );
 
     public void init(Stage stage, Main main) {
@@ -175,6 +175,7 @@ public class BookDialogController implements Initializable {
         for (LangItem langItem : langItems) {
             book.getLangs().add(langItem.getLang());
         }
+        book.setChapters(null);
         PrintWriter printWriter = new PrintWriter(new File(controller.getFile(), "book.json"));
         printWriter.print(new Gson().toJson(book));
         printWriter.flush();
